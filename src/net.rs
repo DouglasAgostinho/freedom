@@ -2,7 +2,7 @@ pub mod network{
 
     use std::net::{TcpListener, TcpStream};
     use std::thread;
-    use std::io::{Read, Write, Error};
+    use std::io::{self,Read, Write, Error};
 
     fn handle_client(mut stream: TcpStream) -> Result<(), Error>{
 
@@ -32,4 +32,24 @@ pub mod network{
             }
         }
     }
+
+    pub fn client(message: &str)-> io::Result<()> {
+        //use std::net::TcpStream;
+        //use std::io::{self, Write, Read};
+
+        // Connect to the server
+        let mut stream = TcpStream::connect("192.168.191.1:8686")?;
+
+        // Send data to the server
+        //let message = "Hello, server!";
+        stream.write_all(message.as_bytes())?;
+
+        // Receive data from the server
+        let mut buffer = [0; 1024];
+        let bytes_read = stream.read(&mut buffer)?;
+        let received = String::from_utf8_lossy(&buffer[..bytes_read]);
+        println!("Received: {}", received);
+
+        Ok(())
+    }    
 }
