@@ -33,12 +33,12 @@ pub mod network{
         }
     }
 
-    pub fn client(message: &str)-> io::Result<()> {
+    pub fn client(message: &str, address: &str)-> io::Result<()> {
         //use std::net::TcpStream;
         //use std::io::{self, Write, Read};
 
         // Connect to the server
-        let mut stream = TcpStream::connect("192.168.191.1:8686")?;
+        let mut stream = TcpStream::connect(address)?;
 
         // Send data to the server
         //let message = "Hello, server!";
