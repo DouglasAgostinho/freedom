@@ -19,7 +19,7 @@ pub mod network{
 
     pub fn net_init(){
 
-        let listener = TcpListener::bind("0.0.0.0:8888").expect("Could not bind");
+        let listener = TcpListener::bind("0.0.0.0:6886").expect("Could not bind");
 
         for stream in listener.incoming(){
             match stream {
@@ -34,47 +34,68 @@ pub mod network{
     }
 
 
-    pub fn client(message: &str, address: &str)-> io::Result<()> {
-        //use std::net::TcpStream;
-        //use std::io::{self, Write, Read};
+    pub fn client(message: &str, address: &str, mode: i32)-> io::Result<()> {
+        
 
-        // Connect to the server
-        let mut stream = TcpStream::connect(address)?;
+        match mode {
 
-        // Send data to the server
-        //let message = "Hello, server!";
-        stream.write_all(message.as_bytes())?;
+            1 => {
+                // Connect to the server
+                let mut stream = TcpStream::connect(address)?;
 
-        // Receive data from the server
-        let mut buffer = [0; 1024];
-        //let bytes_read = stream.read(&mut buffer)?;
-        //let received = String::from_utf8_lossy(&buffer[..bytes_read]);
-        //println!("Received: {}", received);
+                // Send data to the server
+                stream.write_all(message.as_bytes())?;
 
-        loop {
-            match stream.read(&mut buffer) {
-                Ok(0) => {
-                    println!("Connection closed by server");
-                    break;
-                },
-                Ok(n) => {
-                    //let received = str::from_utf8(&buffer[0..n]).expect("Failed to parse message");
-                    //let received = String::from_utf8_lossy(&buffer[0..n]);
-                    //println!("Received: {}", received);
-                    //print!("{}", received);
-                    //write!(io::stdout(), "{}", received).expect("msg");
-                    print!("{}", String::from_utf8_lossy(&buffer[0..n]));
-                    io::stdout().flush()?;  // Ensure immediate output
-                    //println!("{}", String::from_utf8_lossy(&buffer[0..n]));
-                },
-                Err(e) => {
-                    println!("Failed to receive message: {}", e);
-                    break;
+                // Receive data from the server
+                let mut buffer = [0; 1024];
+                
+                loop {
+                    match stream.read(&mut buffer) {
+                        Ok(0) => {
+                            println!("Connection closed by server");
+                            break;
+                        },
+                        Ok(n) => {
+
+                            let msg = String::from_utf8_lossy(&buffer[0..n]);
+                            print!("{}", msg);
+                            
+                            //io::stdout().flush()?;  // Ensure immediate output
+                            
+                        },
+                        Err(e) => {
+                            println!("Failed to receive message: {}", e);
+                            break;
+                        }
+                    }
                 }
-            }
-        }
+                Ok(())
 
-        Ok(())
+            },
+
+            2 => {
+
+                // Connect to the server
+                let mut stream = TcpStream::connect(address)?;
+
+                // Send data to the server
+                //let message = "Hello, server!";
+                stream.write_all(message.as_bytes())?;
+
+                // Receive data from the server
+                let mut buffer = [0; 1024];
+                let bytes_read = stream.read(&mut buffer)?;
+                let received = String::from_utf8_lossy(&buffer[..bytes_read]);
+                println!("Received: {}", received);
+
+                Ok(())
+
+            },
+
+            _ => Ok(()),
+            
+        }
+        
     }
     
 }
