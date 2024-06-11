@@ -20,6 +20,8 @@ pub mod network{
 
                     "[!]_stream_[!]" => true, //(true, "send_llm_output".to_string()),
 
+                    "[!]_blocks_[!]" => false, //to_do will be used to return message block
+
                     _ => {
                         println!("Received: {}", message);
                         //(false, EMPTY_STRING) //to_do Will return decrypted message
@@ -76,7 +78,11 @@ pub mod network{
                         }
                     }
                 }                    
-            }            
+            } 
+            else {
+                println!("Connection closed by server");
+                break;                
+            }           
         }
     }
 
