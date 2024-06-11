@@ -39,7 +39,7 @@ fn main() {
     //Initial greetins
     println!("Welcome to FREDOOM !!!");
 
-    let (send_to_main, main_receiver) = mpsc::channel();
+    let (input_message, message_receiver) = mpsc::channel();
 
     //Spawn thread for server initialization    
     thread::spawn( || network::net_init());
@@ -54,12 +54,12 @@ fn main() {
     my_node.address = my_node.gen_address();
 
 
-    thread::spawn(move || {handle_input(send_to_main)});
+    thread::spawn(move || {handle_input(input_message)});
 
     loop{
 
         // Check for new messages from the input thread
-        let user_input = match main_receiver.try_recv() {
+        let user_input = match message_receiver.try_recv() {
             Ok(input) => {
                 //Return input received
                 println!("Received input: {:?}", input);
@@ -82,14 +82,27 @@ fn main() {
 
             //Call insert function to format and store in a block section
             blocks.insert(message.clone());
+        }                
+
+        //println!("{:?}", blocks.message );
+
+        let mut le_serde = serde_json::to_string(&blocks).expect("Error");
+
+        le_serde.push_str("02");
+
+        let len = le_serde.len();
+        let tail = &le_serde[len -2 .. len];
+
+        println!("Serialized {} lenght {}  tail {}", le_serde, len, tail);
+        
+        match tail {
+
+            "02" => println!("gotcha!"),
+
+            _ => (),
         }
-        
 
-        
-
-        println!("{:?}", blocks.message );
-
-        thread::sleep(time::Duration::from_millis(2000));
+        thread::sleep(time::Duration::from_millis(3000));
     }
 
 }

@@ -77,3 +77,13 @@ fn main() {
     }
     */
 
+/*
+
+"[!]_blocks_[!]" => false, //to_do will be used to return message block
+
+                    "!who_is_alive!" => {
+                        //to_net()
+                        false
+                    },     
+
+*/

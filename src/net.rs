@@ -15,7 +15,7 @@ pub mod network{
 
     //Max number of peers
     const MAX_PEERS: u8 = 10;
-
+    
 
     fn handle_message(message: &String, mode: &str) -> bool{
         //Function to treat incoming / outgoing messages        
@@ -24,20 +24,14 @@ pub mod network{
             "send" => {false},
 
             "receive" => {
+                let msg = message.trim();
                 
-                match message.trim() {                    
+                match msg {                    
 
                     "[!]_stream_[!]" => true, //(true, "send_llm_output".to_string()),
-
-                    "[!]_blocks_[!]" => false, //to_do will be used to return message block
-
-                    "!who_is_alive!" => {
-                        //to_net()
-                        false
-                    },                    
-
+                                   
                     _ => {
-                        println!("Received: {}", message);
+                        println!("Received: {}", message);                                                
                         //(false, EMPTY_STRING) //to_do Will return decrypted message
                         false
                     },
@@ -121,19 +115,10 @@ pub mod network{
         }
     }        
     
-    /// Broadcast message to all Network
-    /// 
-    /// Use "!who_is_alive!" to request live peers
-    /// 
-    /// Use "!Which_blocks!" to request message blocks status
-    /// 
-    /// Also can be used to broadcast answers for the received questions
-    /// 
-    /// Anything else will not be treated
-    fn to_net(send_what: &str) {                
+    /// Broadcast message to all Network    
+    pub fn to_net(send_what: &str) {                
 
-        for n in 1..MAX_PEERS { 
-            
+        for n in 1..MAX_PEERS {             
             //Loop through all address
             let address = format!("192.168.191.{}:6886", n);
 
