@@ -1,11 +1,20 @@
 pub mod network{
-
-    use std::net::{TcpListener, TcpStream};
-    use std::thread;
-    //use std::io::{self,Read, Write, Error};
+    
+    use std::thread;        
     use std::io::{self,Read, Write};
+    use std::net::{TcpListener, TcpStream};
 
+    //use crate::block::{Block, Node};
     //use sha2::digest::consts::False;
+    //use std::io::{self,Read, Write, Error};
+
+    //----------Constants----------//
+
+    //to use in String based variables
+    //const EMPTY_STRING: String = String::new();
+
+    //Max number of peers
+    const MAX_PEERS: u8 = 10;
 
 
     fn handle_message(message: &String, mode: &str) -> bool{
@@ -21,6 +30,11 @@ pub mod network{
                     "[!]_stream_[!]" => true, //(true, "send_llm_output".to_string()),
 
                     "[!]_blocks_[!]" => false, //to_do will be used to return message block
+
+                    "!who_is_alive!" => {
+                        //to_net()
+                        false
+                    },                    
 
                     _ => {
                         println!("Received: {}", message);
@@ -88,9 +102,11 @@ pub mod network{
 
 
     pub fn net_init(){
-
+        
         let listener = TcpListener::bind("0.0.0.0:6886").expect("Could not bind");
         println!("Server initialized...");
+        
+        thread::spawn( || to_net("!who_is_alive!"));
 
         for stream in listener.incoming(){
             match stream {
@@ -103,10 +119,34 @@ pub mod network{
                 }
             }
         }
-    }
+    }        
+    
+    /// Broadcast message to all Network
+    /// 
+    /// Use "!who_is_alive!" to request live peers
+    /// 
+    /// Use "!Which_blocks!" to request message blocks status
+    /// 
+    /// Also can be used to broadcast answers for the received questions
+    /// 
+    /// Anything else will not be treated
+    fn to_net(send_what: &str) {                
+
+        for n in 1..MAX_PEERS { 
+            
+            //Loop through all address
+            let address = format!("192.168.191.{}:6886", n);
+
+            //call client function to send message
+            match client(send_what, &address, "simple"){
+                Ok(_) => (),
+                Err(e) => println!("On host {} Error found {}",address, e),
+            }            
+        }
+    }    
 
 
-    pub fn client(message: &str, address: &str, mode: &str)-> io::Result<()> {
+    fn client(message: &str, address: &str, mode: &str)-> io::Result<()> {
         match mode {
             "simple" => {
                 // Connect to the server

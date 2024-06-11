@@ -3,19 +3,20 @@ mod net;
 mod block;
 
 use std::io; 
+use std::thread;
 use net::network;
 use block::{Block, Node};
 
 //Constant to use in String based variables
 const EMPTY_STRING: String = String::new();
 
-// This is the main function
+
 fn main() {
     //Initial greetins
     println!("Welcome to FREDOOM !!!");
 
-    //Server initialization
-    network::net_init();
+    //Spawn thread for server initialization    
+    thread::spawn( || network::net_init());
 
     //Instance of Block struct
     let mut blocks: Block = Block{
@@ -44,6 +45,9 @@ fn main() {
         //Call insert function to format and store in a block section
         blocks.insert(message.clone());
 
+        println!("{:?}", blocks.message );
     }
 
 }
+
+
