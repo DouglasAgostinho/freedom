@@ -5,85 +5,78 @@ pub mod network{
     //use std::io::{self,Read, Write, Error};
     use std::io::{self,Read, Write};
 
+    //use sha2::digest::consts::False;
 
-    fn handle_message(message: &String, mode: &str) -> u8{
-        //Function to treat incoming / outgoing messages
 
+    fn handle_message(message: &String, mode: &str) -> bool{
+        //Function to treat incoming / outgoing messages        
         match mode {
 
-            "encrypt" => {0},
+            "send" => {false},
 
-            "decrypt_llm" => {0},
+            "receive" => {
+                
+                match message.trim() {                    
 
-            "interpret" => {
-                match message {
+                    "[!]_stream_[!]" => true, //(true, "send_llm_output".to_string()),
 
-                    
-
-                    _ => 0,
+                    _ => {
+                        println!("Received: {}", message);
+                        //(false, EMPTY_STRING) //to_do Will return decrypted message
+                        false
+                    },
                 }
             },
 
             "test" => {
                 println!("Received: {}", message);
-                254
+                //(false, EMPTY_STRING)
+                false
             },
-            _ => 0,
+
+            _ => false,//(false, EMPTY_STRING),
         }
     }
 
 
-    fn handle_client(mut stream: TcpStream, mode: &str) {
+    fn handle_client(mut stream: TcpStream) {
         //fn handle_client(mut stream: TcpStream) -> Result<(), Error>{
 
+        let income_addr = stream.peer_addr().expect("Error");
         //println!("Incoming connection from {}", stream.peer_addr()?);   
-        println!("Incoming connection from {}", stream.peer_addr().expect("Error"));
+        println!("Incoming connection from {}", income_addr);
         let mut buf = [0; 512];
 
         loop {
-            
-            //let bytes_read = stream.read(&mut buf)?;
-            let bytes_read = stream.read(&mut buf).expect("Error");
-            //if bytes_read == 0 {return Ok(())}
+                        
+            let bytes_read = stream.read(&mut buf).expect("Error");            
             if bytes_read == 0 {break}
+            
             let received = String::from_utf8_lossy(&buf[..bytes_read]);
-            match handle_message(&received.to_string(), mode) {
 
-                1 => {
-                    //Receive blocks from server
-                    let mut buffer = [0; 1024];
-                    //let bytes_read = stream.read(&mut buffer)?;
-                    let bytes_read = stream.read(&mut buffer).expect("Error");
-                    let received = String::from_utf8_lossy(&buffer[..bytes_read]);
-                    //println!("Received: {}", received);
-                },
-                2 => {
-                    // Receive data continuously from the server
-                    let mut buffer = [0; 1024];                    
-                    loop {
-                        match stream.read(&mut buffer) {
-                            Ok(0) => {
-                                println!("Connection closed by server");
-                                break;
-                            },
-                            Ok(n) => {
-                                let msg = String::from_utf8_lossy(&buffer[0..n]);
-                                print!("{}", msg);      //Uses print! to not insert /n after each received data                                
-                                //io::stdout().flush()?;  // Ensure immediate output
-                                io::stdout().flush().expect("error");  // Ensure immediate output
-                            },
-                            Err(e) => {
-                                println!("Failed to receive message: {}", e);
-                                break;
-                            }
+            if handle_message(&received.to_string(), "receive") {                                
+                                                     
+                stream.write_all("ready_to_receive".as_bytes()).expect("error");
+                // Receive data continuously from the server
+                let mut buffer = [0; 1024];                    
+                loop {
+                    match stream.read(&mut buffer) {
+                        Ok(0) => {
+                            println!("Connection closed by server");
+                            break;
+                        },
+                        Ok(n) => {
+                            let msg = String::from_utf8_lossy(&buffer[0..n]);
+                            print!("{}", msg);      //Uses print! to not insert /n after each received data                                                            
+                            io::stdout().flush().expect("error");  // Ensure immediate output
+                        },
+                        Err(e) => {
+                            println!("Failed to receive message: {}", e);
+                            break;
                         }
                     }
-                    //Ok(())
-                },
-
-                _ => {},
-            }
-            
+                }                    
+            }            
         }
     }
 
@@ -99,7 +92,7 @@ pub mod network{
                 Ok(stream) => {
                     thread::spawn(move || {
                         //handle_client(stream).unwrap_or_else(|error| println!("Error {:?}", error));
-                        handle_client(stream, "interpret");
+                        handle_client(stream);
                     });
                 }
             }
@@ -107,16 +100,16 @@ pub mod network{
     }
 
 
-    pub fn client(message: &str, address: &str, mode: i32)-> io::Result<()> {
+    pub fn client(message: &str, address: &str, mode: &str)-> io::Result<()> {
         match mode {
-            1 => {
+            "simple" => {
                 // Connect to the server
                 let mut stream = TcpStream::connect(address)?;
                 // Send data to the server
                 stream.write_all(message.as_bytes())?;
                 Ok(())
             },
-            2 => {
+            "serialized" => {
                 // Connect to the server
                 let mut stream = TcpStream::connect(address)?;
 
@@ -126,7 +119,7 @@ pub mod network{
                 stream.write_all(serialized.as_bytes())?;
                 Ok(())
             },
-            3 => {
+            "test" => {
                 // Connect to the server
                 let mut stream = TcpStream::connect(address)?;
                 stream.write_all(message.as_bytes())?;
