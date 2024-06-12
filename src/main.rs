@@ -15,7 +15,7 @@ use block::{Block, Node};
 const EMPTY_STRING: String = String::new();
 
 //Time constants
-const MINUTE: Duration = Duration::from_secs(60);
+const MINUTE: Duration = Duration::from_secs(10);
 
 fn handle_input(tx: Sender<String>){
 
@@ -56,25 +56,24 @@ fn main() {
     let mut my_node: Node = Node{address:EMPTY_STRING};
     my_node.address = my_node.gen_address();
 
-    let now = SystemTime::now();
+    let mut now = SystemTime::now();
 
 
     thread::spawn(move || {handle_input(input_message)});
 
     loop{
 
-        
-
-        println!("Tempo {:?}", now.elapsed());
-
         match now.elapsed(){
 
             Ok(n) => {
+                println!("Tempo => {:?}", n);
                 if n >= MINUTE{
-
                     println!("One minute");
                     let message = serde_json::to_string(&blocks).expect("Error");
-                    network::to_net(&message);
+                    
+                    thread::spawn(move || network::to_net(&message));
+
+                    now = SystemTime::now();
 
                 }
             },
@@ -111,21 +110,7 @@ fn main() {
 
         //println!("{:?}", blocks.message );
 
-        let mut le_serde = serde_json::to_string(&blocks).expect("Error");
-
-        le_serde.push_str("002");
-
-        let len = le_serde.len();
-        let tail = &le_serde[len -3 .. len];
-
-        println!("Serialized {} lenght {}  tail {}", le_serde, len, tail);
         
-        match tail {
-
-            "002" => println!("gotcha!"),
-
-            _ => (),
-        }
 
         thread::sleep(Duration::from_millis(3000));
 

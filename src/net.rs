@@ -14,7 +14,7 @@ pub mod network{
     //const EMPTY_STRING: String = String::new();
 
     //Max number of peers
-    const MAX_PEERS: u8 = 10;
+    const MAX_PEERS: u8 = 3;
     
 
     fn handle_message(message: &String, mode: &str) -> bool{

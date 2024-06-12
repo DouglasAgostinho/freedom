@@ -1,5 +1,25 @@
 
 
+/*
+
+let mut le_serde = serde_json::to_string(&blocks).expect("Error");
+
+        le_serde.push_str("002");
+
+        let len = le_serde.len();
+        let tail = &le_serde[len -3 .. len];
+
+        println!("Serialized {} lenght {}  tail {}", le_serde, len, tail);
+        
+        match tail {
+
+            "002" => println!("gotcha!"),
+
+            _ => (),
+        }
+
+*/
+
 
 //stream.write(&buf[..bytes_read])?;
 
