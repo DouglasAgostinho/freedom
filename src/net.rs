@@ -31,7 +31,16 @@ pub mod network{
                     "[!]_stream_[!]" => true, //(true, "send_llm_output".to_string()),
                                    
                     _ => {
-                        println!("Received: {}", message);                                                
+                        println!("Received: {}", message);    
+                        
+                        let len = message.len();
+                        let tail = &message[len -3 .. len];       
+
+                        match tail {
+
+                            "002" => println!("Received Block => {}", message),
+                            _ => (),                            
+                        }                                  
                         //(false, EMPTY_STRING) //to_do Will return decrypted message
                         false
                     },
@@ -100,7 +109,7 @@ pub mod network{
         let listener = TcpListener::bind("0.0.0.0:6886").expect("Could not bind");
         println!("Server initialized...");
         
-        thread::spawn( || to_net("!who_is_alive!"));
+        //thread::spawn( || to_net("!who_is_alive!"));
 
         for stream in listener.incoming(){
             match stream {
@@ -117,6 +126,10 @@ pub mod network{
     
     /// Broadcast message to all Network    
     pub fn to_net(send_what: &str) {                
+
+        let mut message = serde_json::to_string(send_what).expect("Error");
+
+        message.push_str("002");
 
         for n in 1..MAX_PEERS {             
             //Loop through all address

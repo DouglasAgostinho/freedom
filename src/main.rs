@@ -2,7 +2,7 @@
 mod net;
 mod block;
 
-use core::time;
+use std::time::{Duration, SystemTime};
 use std::io; 
 use std::thread;
 use net::network;
@@ -13,6 +13,9 @@ use block::{Block, Node};
 
 //Constant to use in String based variables
 const EMPTY_STRING: String = String::new();
+
+//Time constants
+const MINUTE: Duration = Duration::from_secs(60);
 
 fn handle_input(tx: Sender<String>){
 
@@ -53,10 +56,32 @@ fn main() {
     let mut my_node: Node = Node{address:EMPTY_STRING};
     my_node.address = my_node.gen_address();
 
+    let now = SystemTime::now();
+
 
     thread::spawn(move || {handle_input(input_message)});
 
     loop{
+
+        
+
+        println!("Tempo {:?}", now.elapsed());
+
+        match now.elapsed(){
+
+            Ok(n) => {
+                if n >= MINUTE{
+
+                    println!("One minute");
+                    let message = serde_json::to_string(&blocks).expect("Error");
+                    network::to_net(&message);
+
+                }
+            },
+
+            Err(e) => println!("Error {}", e),
+            
+        }        
 
         // Check for new messages from the input thread
         let user_input = match message_receiver.try_recv() {
@@ -88,21 +113,25 @@ fn main() {
 
         let mut le_serde = serde_json::to_string(&blocks).expect("Error");
 
-        le_serde.push_str("02");
+        le_serde.push_str("002");
 
         let len = le_serde.len();
-        let tail = &le_serde[len -2 .. len];
+        let tail = &le_serde[len -3 .. len];
 
         println!("Serialized {} lenght {}  tail {}", le_serde, len, tail);
         
         match tail {
 
-            "02" => println!("gotcha!"),
+            "002" => println!("gotcha!"),
 
             _ => (),
         }
 
-        thread::sleep(time::Duration::from_millis(3000));
+        thread::sleep(Duration::from_millis(3000));
+
+        
+
+        
     }
 
 }
