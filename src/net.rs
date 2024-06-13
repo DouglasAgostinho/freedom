@@ -1,12 +1,11 @@
 pub mod network{
     
+    //use std::os::unix::net::SocketAddr;
     use std::thread;        
     use std::io::{self,Read, Write};
-    use std::net::{TcpListener, TcpStream};
-
-    //use crate::block::{Block, Node};
+    use std::net::{TcpListener, TcpStream};    
     //use sha2::digest::consts::False;
-    //use std::io::{self,Read, Write, Error};
+    
 
     //----------Constants----------//
 
@@ -15,6 +14,9 @@ pub mod network{
 
     //Max number of peers
     const MAX_PEERS: u8 = 3;
+
+    //Message code size
+    pub const CODE_SIZE: usize = 3;
     
 
     fn handle_message(message: &String, mode: &str) -> bool{
@@ -28,43 +30,40 @@ pub mod network{
                 
                 match msg {                    
 
-                    "[!]_stream_[!]" => true, //(true, "send_llm_output".to_string()),
+                    "[!]_stream_[!]" => true, 
                                    
                     _ => {
                         println!("Received: {}", message);    
                         
                         let len = message.len();
-                        let tail = &message[len -3 .. len];       
+                        let tail = &message[len - CODE_SIZE .. len];       
 
                         match tail {
 
                             "002" => println!("Received Block => {}", message),
                             _ => (),                            
-                        }                                  
-                        //(false, EMPTY_STRING) //to_do Will return decrypted message
-                        false
+                        }                                                          
+                        false //to_do Will return decrypted message
                     },
                 }
             },
 
             "test" => {
-                println!("Received: {}", message);
-                //(false, EMPTY_STRING)
+                println!("Received: {}", message);                
                 false
             },
 
-            _ => false,//(false, EMPTY_STRING),
+            _ => false,
         }
     }
 
 
-    fn handle_client(mut stream: TcpStream) {
-        //fn handle_client(mut stream: TcpStream) -> Result<(), Error>{
+    fn handle_client(mut stream: TcpStream) {        
 
         let income_addr = stream.peer_addr().expect("Error");
         //println!("Incoming connection from {}", stream.peer_addr()?);   
         println!("Incoming connection from {}", income_addr);
-        let mut buf = [0; 512];
+        let mut buf = [0; 1024];
 
         loop {
                         
@@ -104,9 +103,13 @@ pub mod network{
     }
 
 
-    pub fn net_init(){
-        
-        let listener = TcpListener::bind("0.0.0.0:6886").expect("Could not bind");
+    pub fn net_init(port: &str){
+        //Composing IP address with received port
+        let mut addr = String::from("0.0.0.0");
+        addr.push_str(port);
+
+        //Set system to listen
+        let listener = TcpListener::bind(addr).expect("Could not bind");
         println!("Server initialized...");
         
         //thread::spawn( || to_net("!who_is_alive!"));

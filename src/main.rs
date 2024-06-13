@@ -1,3 +1,13 @@
+
+/*
+
+    This program is intended to be a place where .......
+
+    #Message code table
+    000 - life beat message that broadcast listening port.
+
+*/
+
 //Modules declaration
 mod net;
 mod block;
@@ -15,10 +25,14 @@ use block::{Block, Node};
 const EMPTY_STRING: String = String::new();
 
 //Time constants
-const MINUTE: Duration = Duration::from_secs(10);
+const MINUTE: Duration = Duration::from_secs(60);
 
-fn handle_input(tx: Sender<String>){
 
+//Constant Address & PORT
+const NET_PORT: &str = "6886";
+
+fn local_users(tx: Sender<String>){
+    
     loop {                
         //Variable to receive user input
         let mut user_input = EMPTY_STRING;
@@ -45,7 +59,7 @@ fn main() {
     let (input_message, message_receiver) = mpsc::channel();
 
     //Spawn thread for server initialization    
-    thread::spawn( || network::net_init());
+    thread::spawn( || network::net_init(NET_PORT));
 
     //Instance of Block struct
     let mut blocks: Block = Block{
@@ -56,21 +70,30 @@ fn main() {
     let mut my_node: Node = Node{address:EMPTY_STRING};
     my_node.address = my_node.gen_address();
 
+    //Initiate time measurement - some features will be time triggered     
     let mut now = SystemTime::now();
 
-
-    thread::spawn(move || {handle_input(input_message)});
+    //Spawn thread for handle local user interaction
+    thread::spawn(move || {local_users(input_message)});
 
     loop{
 
+        //Control of time triggered features
         match now.elapsed(){
 
             Ok(n) => {
-                println!("Tempo => {:?}", n);
+                println!("Tempo => {:?}", n); //Debug print - to_do change to crate tracer event
                 if n >= MINUTE{
-                    println!("One minute");
-                    let message = serde_json::to_string(&blocks).expect("Error");
-                    
+                    println!("One minute"); //to_do change to crate tracer event
+
+                    //Propagate self IP address and port
+                    //let message = serde_json::to_string(&blocks).expect("Error");
+
+                    //Composing message
+                    let mut message: String = String::from(NET_PORT);
+                    message.push_str("000");    //000 - code for life beat message (check message code table)
+
+                    //Spawn thread to propagate listening port to all network                  
                     thread::spawn(move || network::to_net(&message));
 
                     now = SystemTime::now();
