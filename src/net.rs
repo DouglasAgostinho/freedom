@@ -15,8 +15,17 @@ pub mod network{
     //Max number of peers
     const MAX_PEERS: u8 = 3;
 
-    //Message code size
-    pub const CODE_SIZE: usize = 3;
+    
+    //Constant Address & PORT
+    pub const NET_PORT: &str = "6886";
+
+    //Software version
+    pub const VERSION: &str = "000.01";
+    pub const VER_SIZE: usize = VERSION.len();
+
+    //Message Code
+    pub const INIT_CODE: &str = "00001";
+    pub const CODE_SIZE: usize = INIT_CODE.len();
     
 
     fn handle_message(message: &String, mode: &str) -> bool{
@@ -36,9 +45,10 @@ pub mod network{
                         println!("Received: {}", message);    
                         
                         let len = message.len();
-                        let tail = &message[len - CODE_SIZE .. len];       
+                        let msg_code = &message[len - CODE_SIZE - VER_SIZE .. len];    
+                        //let client_version = &message[len - VER_SIZE .. len];   
 
-                        match tail {
+                        match msg_code {
 
                             "002" => println!("Received Block => {}", message),
                             _ => (),                            
