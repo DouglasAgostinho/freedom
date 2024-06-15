@@ -3,8 +3,8 @@
 
     This program is intended to be a place where .......
 
-    #Message code table version-001
-    000 - life beat message that broadcast listening port.
+    #Message code table version - 000.01
+    00000 - life beat message that broadcast listening port.
 
 */
 
@@ -28,6 +28,7 @@ const EMPTY_STRING: String = String::new();
 //Time constants
 const MINUTE: Duration = Duration::from_secs(60);
 
+const MY_ADDRESS: &str = "xyz6886";
 
 
 fn local_users(tx: Sender<String>){
@@ -58,7 +59,7 @@ fn main() {
     let (input_message, message_receiver) = mpsc::channel();
 
     //Spawn thread for server initialization    
-    thread::spawn( || network::net_init(NET_PORT));
+    thread::spawn( || network::net_init());
 
     //Instance of Block struct
     let mut blocks: Block = Block{
@@ -89,8 +90,9 @@ fn main() {
                     //let message = serde_json::to_string(&blocks).expect("Error");
 
                     //Composing message
-                    let mut message: String = String::from(NET_PORT);
-                    message.push_str("000");    //000 - code for life beat message (check message code table)
+                    let mut message: String = String::from(MY_ADDRESS);
+                    message.push_str(NET_PORT);
+                    message.push_str("00000");    //00000 - code for life beat message (check message code table)
                     message.push_str(VERSION);
 
                     //Spawn thread to propagate listening port to all network                  

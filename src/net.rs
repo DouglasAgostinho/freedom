@@ -13,18 +13,19 @@ pub mod network{
     //const EMPTY_STRING: String = String::new();
 
     //Max number of peers
-    const MAX_PEERS: u8 = 3;
+    const MAX_PEERS: u8 = 5;
 
     
     //Constant Address & PORT
     pub const NET_PORT: &str = "6886";
+    pub const PORT_SIZE: usize = NET_PORT.len();
 
     //Software version
     pub const VERSION: &str = "000.01";
-    pub const VER_SIZE: usize = VERSION.len();
+    pub const VER_SIZE: usize = VERSION.len() + 1;
 
     //Message Code
-    pub const INIT_CODE: &str = "00001";
+    pub const INIT_CODE: &str = "00000";
     pub const CODE_SIZE: usize = INIT_CODE.len();
     
 
@@ -45,12 +46,19 @@ pub mod network{
                         println!("Received: {}", message);    
                         
                         let len = message.len();
-                        let msg_code = &message[len - CODE_SIZE - VER_SIZE .. len];    
-                        //let client_version = &message[len - VER_SIZE .. len];   
+                        let client_ver = &message[len - VER_SIZE .. len];
+                        let msg_code = &message[len - CODE_SIZE - VER_SIZE .. len - VER_SIZE];    
+                        let client_port = &message[len - PORT_SIZE - CODE_SIZE - VER_SIZE .. len - CODE_SIZE - VER_SIZE];  
+                        let msg = &message[0 .. len - PORT_SIZE - CODE_SIZE - VER_SIZE];
+
+                        println!("version -> {} & code -> {}", client_ver, msg_code);
+                        println!(" client port -> {} & msg -> {}", client_port, msg );
 
                         match msg_code {
 
-                            "002" => println!("Received Block => {}", message),
+                            "00000" => println!("Message -> {}", msg),
+
+                            "00002" => println!("Received Block => {}", message),
                             _ => (),                            
                         }                                                          
                         false //to_do Will return decrypted message
@@ -113,10 +121,10 @@ pub mod network{
     }
 
 
-    pub fn net_init(port: &str){
+    pub fn net_init(){
         //Composing IP address with received port
-        let mut addr = String::from("0.0.0.0");
-        addr.push_str(port);
+        let mut addr = String::from("0.0.0.0:");
+        addr.push_str(NET_PORT);
 
         //Set system to listen
         let listener = TcpListener::bind(addr).expect("Could not bind");
@@ -140,19 +148,24 @@ pub mod network{
     /// Broadcast message to all Network    
     pub fn to_net(send_what: &str) {                
 
-        let mut message = serde_json::to_string(send_what).expect("Error");
+        let message = serde_json::to_string(send_what).expect("Error");
 
-        message.push_str("002");
+        //message.push_str(VERSION);
 
-        for n in 1..MAX_PEERS {             
+        //let msg: &str = &message[ .. ];
+
+        for n in 1..MAX_PEERS {         
+
+            let msg = message.clone();    
+
             //Loop through all address
             let address = format!("192.168.191.{}:6886", n);
 
             //call client function to send message
-            match client(send_what, &address, "simple"){
+            thread::spawn(move || match client(&msg, &address, "simple"){
                 Ok(_) => (),
                 Err(e) => println!("On host {} Error found {}",address, e),
-            }            
+            });
         }
     }    
 
