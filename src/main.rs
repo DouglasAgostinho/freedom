@@ -16,7 +16,7 @@ use std::time::{Duration, SystemTime};
 use std::io; 
 use std::thread;
 use net::network::{self, NET_PORT, VERSION};
-use std::sync::mpsc::{self, Sender};
+use std::sync::mpsc::{self, Receiver, Sender};
 //use std::sync::mpsc::{self, Receiver, Sender};
 use block::{Block, Node};
 
@@ -52,14 +52,34 @@ fn local_users(tx: Sender<String>){
     }  
 }
 
+fn handle_thread_msg(message_receiver: &Receiver<String>) -> String{
+
+    match message_receiver.try_recv() {
+        Ok(msg) => {
+            //Return input received
+            println!("Received input: {:?}", msg);
+            msg
+        },
+        Err(mpsc::TryRecvError::Empty) => {
+            // No input received, return Empty String 
+            EMPTY_STRING
+        }
+        Err(mpsc::TryRecvError::Disconnected) => {
+            eprintln!("Input thread has disconnected.");
+            EMPTY_STRING
+        }
+    }
+}
+
 fn main() {
     //Initial greetins
     println!("Welcome to FREDOOM !!!");
 
     let (input_message, message_receiver) = mpsc::channel();
+    let (net_message, net_receiver) = mpsc::channel();
 
     //Spawn thread for server initialization    
-    thread::spawn( || network::net_init());
+    thread::spawn( move || network::net_init(net_message));
 
     //Instance of Block struct
     let mut blocks: Block = Block{
@@ -108,26 +128,16 @@ fn main() {
         }        
 
         // Check for new messages from the input thread
-        let user_input = match message_receiver.try_recv() {
-            Ok(input) => {
-                //Return input received
-                println!("Received input: {:?}", input);
-                input
-            },
-            Err(mpsc::TryRecvError::Empty) => {
-                // No input received, return Empty String 
-                EMPTY_STRING
-            }
-            Err(mpsc::TryRecvError::Disconnected) => {
-                eprintln!("Input thread has disconnected.");
-                break;
-            }
-        };
-               
+        let user_msg = handle_thread_msg(&message_receiver);
 
-        if user_input != EMPTY_STRING {
+        // Check for new messages from the input thread
+        let net_msg = handle_thread_msg(&net_receiver);
+
+        println!(" net message => {}", net_msg);
+
+        if user_msg != EMPTY_STRING {
             //Organize data to fit in the message format [current time, address, message text]
-            let message: [String; 3] = [my_node.get_time_ns(), my_node.address.clone(), String::from(user_input.trim())];
+            let message: [String; 3] = [my_node.get_time_ns(), my_node.address.clone(), String::from(user_msg.trim())];
 
             //Call insert function to format and store in a block section
             blocks.insert(message.clone());
@@ -142,3 +152,22 @@ fn main() {
 }
 
 
+/*
+
+let user_input = match message_receiver.try_recv() {
+            Ok(input) => {
+                //Return input received
+                println!("Received input: {:?}", input);
+                input
+            },
+            Err(mpsc::TryRecvError::Empty) => {
+                // No input received, return Empty String 
+                EMPTY_STRING
+            }
+            Err(mpsc::TryRecvError::Disconnected) => {
+                eprintln!("Input thread has disconnected.");
+                break;
+            }
+        };
+
+*/
