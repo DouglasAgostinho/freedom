@@ -11,7 +11,7 @@ pub mod network{
     //----------Constants----------//
 
     //to use in String based variables
-    //const EMPTY_STRING: String = String::new();
+    const EMPTY_STRING: String = String::new();
 
     //Max number of peers
     const MAX_PEERS: u8 = 5;
@@ -22,15 +22,15 @@ pub mod network{
     pub const PORT_SIZE: usize = NET_PORT.len();
 
     //Software version
-    pub const VERSION: &str = "000.01";
-    pub const VER_SIZE: usize = VERSION.len() + 1;
+    pub const VERSION: &str = "000_01";
+    pub const VER_SIZE: usize = VERSION.len();
 
     //Message Code
     pub const INIT_CODE: &str = "00000";
     pub const CODE_SIZE: usize = INIT_CODE.len();
     
 
-    fn handle_message(message: &String, mode: &str, tx: Sender<String>) -> bool{
+    fn handle_message(message: &String, mode: &str, tx: Sender<[String; 3]>) -> bool{
         //Function to treat incoming / outgoing messages        
         match mode {
 
@@ -50,7 +50,7 @@ pub mod network{
                         let client_ver = &message[len - VER_SIZE .. len];
                         let msg_code = &message[len - CODE_SIZE - VER_SIZE .. len - VER_SIZE];    
                         let client_port = &message[len - PORT_SIZE - CODE_SIZE - VER_SIZE .. len - CODE_SIZE - VER_SIZE];  
-                        let msg = &message[0 .. len - PORT_SIZE - CODE_SIZE - VER_SIZE];
+                        let msg = &message[1 .. len - CODE_SIZE - VER_SIZE -1];
 
                         println!("version -> {} & code -> {}", client_ver, msg_code);
                         println!(" client port -> {} & msg -> {}", client_port, msg );
@@ -61,13 +61,41 @@ pub mod network{
 
                             "00001" => { //Block received
 
-                                //Send net message to main thread
-                                if tx.send(msg.to_string()).is_err() {
-                                    eprintln!("Failed to send input to main thread.");                                    
-                                }
+                                let mut net_message :Vec<[String; 3]> = match serde_json::from_str(&msg) {
+
+                                    Ok(n) => n,
+                                    Err(e) => {
+                                        println!("error found 1 {}", e);
+                                        Vec::from([[EMPTY_STRING; 3]])
+                                        } 
+                                };
+
+
+                                loop{
+
+                                    let mut user_msg: [String; 3] = [EMPTY_STRING; 3];
+
+                                    if let Some(_) =  net_message.get(0){
+
+                                        user_msg = net_message.swap_remove(0);
+                        
+                                    }                                    
+                        
+                                    if user_msg[0] != EMPTY_STRING {
+
+                                        //Send net message to main thread
+                                        if tx.send(user_msg).is_err() {
+                                            eprintln!("Failed to send message to main thread.");                                    
+                                        }                                        
+                                    }
+                                    else {
+                                        break;
+                                    }                        
+                        
+                                }                                
                             }
 
-                            "00002" => println!("Received Block => {}", message),
+                            "00002" => println!("Received message => {}", message),
                             _ => (),                            
                         }                                                          
                         false //to_do Will return decrypted message
@@ -85,7 +113,7 @@ pub mod network{
     }
 
 
-    fn handle_client(mut stream: TcpStream, tx: Sender<String>) {        
+    fn handle_client(mut stream: TcpStream, tx: Sender<[String; 3]>) {        
 
         let income_addr = stream.peer_addr().expect("Error");
         //println!("Incoming connection from {}", stream.peer_addr()?);   
@@ -132,7 +160,7 @@ pub mod network{
     }
 
 
-    pub fn net_init(tx: Sender<String>){
+    pub fn net_init(tx: Sender<[String; 3]>){
         //Composing IP address with received port
         let mut addr = String::from("0.0.0.0:");
         addr.push_str(NET_PORT);
@@ -146,7 +174,7 @@ pub mod network{
         for stream in listener.incoming(){
             let snd = tx.clone();
             match stream {
-                Err(e) => println!("Error found {e}"),
+                Err(e) => println!("Error found 0 {e}"),
                 Ok(stream) => {
                     thread::spawn(move || {
                         //handle_client(stream).unwrap_or_else(|error| println!("Error {:?}", error));
