@@ -97,7 +97,7 @@ fn main() {
     thread::spawn(move || {local_users(input_message)});
 
     loop{
-
+        let mut message_buffer: Vec<String> = Vec::new();
         //Control of time triggered features
         match now.elapsed(){
 
@@ -128,23 +128,31 @@ fn main() {
         }        
 
         // Check for new messages from the input thread
-        let user_msg = handle_thread_msg(&message_receiver);
+        message_buffer.push(handle_thread_msg(&message_receiver));
 
-        // Check for new messages from the input thread
-        let net_msg = handle_thread_msg(&net_receiver);
+        // Check for new messages from the network thread
+        message_buffer.push(handle_thread_msg(&net_receiver));
 
-        println!(" net message => {}", net_msg);
+        
 
-        if user_msg != EMPTY_STRING {
-            //Organize data to fit in the message format [current time, address, message text]
-            let message: [String; 3] = [my_node.get_time_ns(), my_node.address.clone(), String::from(user_msg.trim())];
+        loop{
 
-            //Call insert function to format and store in a block section
-            blocks.insert(message.clone());
-        }                
+            let user_msg = message_buffer.swap_remove(0);
 
-        //println!("{:?}", blocks.message );        
+            if user_msg != EMPTY_STRING {
+                //Organize data to fit in the message format [current time, address, message text]
+                let message: [String; 3] = [my_node.get_time_ns(), my_node.address.clone(), String::from(user_msg.trim())];
+    
+                //Call insert function to format and store in a block section
+                blocks.insert(message.clone());
+            }
+            else {
+                break;
+            }                        
 
+        }
+        
+        println!(" Blocks => {:?}", blocks.message);
         thread::sleep(Duration::from_millis(3000));       
         
     }
@@ -152,22 +160,18 @@ fn main() {
 }
 
 
+
 /*
 
-let user_input = match message_receiver.try_recv() {
-            Ok(input) => {
-                //Return input received
-                println!("Received input: {:?}", input);
-                input
-            },
-            Err(mpsc::TryRecvError::Empty) => {
-                // No input received, return Empty String 
-                EMPTY_STRING
-            }
-            Err(mpsc::TryRecvError::Disconnected) => {
-                eprintln!("Input thread has disconnected.");
-                break;
-            }
-        };
+
+        // Check for new messages from the input thread
+        let user_msg = handle_thread_msg(&message_receiver);
+
+        // Check for new messages from the network thread
+        let net_msg = handle_thread_msg(&net_receiver);
+
+        println!(" net message => {}", net_msg);
+
+
 
 */
