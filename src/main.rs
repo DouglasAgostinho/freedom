@@ -16,7 +16,7 @@ use std::time::{Duration, SystemTime};
 use std::io; 
 use std::thread;
 //use net::network::{self, NET_PORT, VERSION};
-use net::network::{self, VERSION};
+use net::network;
 use std::sync::mpsc::{self, Receiver, Sender};
 //use std::sync::mpsc::{self, Receiver, Sender};
 use block::{Block, Node};
@@ -104,6 +104,7 @@ fn main() {
     thread::spawn( move || network::net_init(net_message));
 
     //Instance of Block struct
+    
     let mut blocks: Block = Block{
         message: Vec::from([[EMPTY_STRING; 3]])
     };
@@ -129,14 +130,9 @@ fn main() {
                     println!("One minute"); //to_do change to crate tracer event
 
                     //Propagate self IP address and port
-                    let mut message = serde_json::to_string(&blocks.message).expect("Error");
-                    message.push_str("00001");    //00000 - code for life beat message (check message code table)
-                    message.push_str(VERSION);
-
-                    //Composing message
-                    //let mut message: String = String::from(MY_ADDRESS);
-                    //message.push_str(NET_PORT);
-                    //message.push_str("00000");    //00000 - code for life beat message (check message code table)
+                    //let message = serde_json::to_string(&blocks).expect("Error");
+                    let message = serde_json::to_string(&blocks.message).expect("Error");
+                    //message.push_str("00001");    //00000 - code for life beat message (check message code table)
                     //message.push_str(VERSION);
 
                     //Spawn thread to propagate listening port to all network                  
@@ -147,8 +143,7 @@ fn main() {
                 }
             },
 
-            Err(e) => println!("Error {}", e),
-            
+            Err(e) => println!("Error {}", e),            
         }        
 
         // Check for new messages from the input thread
@@ -157,9 +152,10 @@ fn main() {
         // Check for new messages from the network thread
         //message_buffer.push(handle_thread_msg(&net_receiver));
 
-        let net_msg = handle_net_msg(&net_receiver);
+        let net_msg: [String; 3] = handle_net_msg(&net_receiver);
         loop {
 
+            println!(" net msg => {}", net_msg[0]);
             if net_msg[0] != EMPTY_STRING {                
     
                 //Call insert function to format and store in a block section
@@ -167,8 +163,7 @@ fn main() {
             }
             else {
                 break;
-            }                                 
-            
+            }             
         }
 
         
@@ -191,7 +186,7 @@ fn main() {
                 
                 //Call insert function to format and store in a block section
                 blocks.insert(message.clone());
-                println!("User message => {:?}", message);
+                //println!("User message => {:?}", message);
             }
             else {
                 break;
