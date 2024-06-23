@@ -135,8 +135,9 @@ fn main() {
                     //message.push_str("00001");    //00000 - code for life beat message (check message code table)
                     //message.push_str(VERSION);
 
+                    let msg = message.clone();
                     //Spawn thread to propagate listening port to all network                  
-                    thread::spawn(move || network::to_net(&message));
+                    thread::spawn(move || network::to_net(msg));
 
                     now = SystemTime::now();
 
@@ -152,7 +153,7 @@ fn main() {
         // Check for new messages from the network thread
         //message_buffer.push(handle_thread_msg(&net_receiver));
 
-        let net_msg: [String; 3] = handle_net_msg(&net_receiver);
+        let mut net_msg: [String; 3] = handle_net_msg(&net_receiver);
         loop {
 
             println!(" net msg => {}", net_msg[0]);
@@ -160,6 +161,8 @@ fn main() {
     
                 //Call insert function to format and store in a block section
                 blocks.insert(net_msg.clone());
+
+                net_msg = [EMPTY_STRING; 3];
             }
             else {
                 break;

@@ -4,7 +4,7 @@ use std::time::{SystemTime,UNIX_EPOCH};
 //use serde::{Deserialize, Serialize};
 
 //#[derive(Debug, Deserialize, Serialize)]
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+//#[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct Block {        
     pub message:    Vec<[String; 3]>,    
 }

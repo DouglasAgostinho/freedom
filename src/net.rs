@@ -41,7 +41,7 @@ pub mod network{
         //let mut net_b = Block{
           //  message: Vec::from([[EMPTY_STRING; 3]])
         //};
-
+        let pure_msg = message.clone();
         //Function to treat incoming / outgoing messages        
         match mode {
 
@@ -56,6 +56,7 @@ pub mod network{
                                    
                     _ => {
                         println!("Received: {}", message);    
+                        println!("Pure: {}", pure_msg);    
                         
                         //let len = message.len();
                         //let client_ver = &message[len - VER_SIZE -1 .. len];
@@ -66,8 +67,10 @@ pub mod network{
 
                         //net_b.message = serde_json::from_slice(&recv).expect("error ----");
                         //println!(" net_b =>{:?}", net_b.message);
-                        let mmsg: String = serde_json::from_str(&message).expect("error");
-                        println!(" ------------------------ msg -> {}", mmsg );
+
+                        //let mmsg: String = serde_json::from_str(&pure_msg).expect("error");
+                        //println!(" ------------------------ msg -> {}", mmsg );
+
                         let mut net_message :Vec<[String; 3]> = serde_json::from_str(&message).expect("Error");
                         //let mut net_block: Block = serde_json::from_str(&message).expect("Error");
                         
@@ -118,7 +121,10 @@ pub mod network{
                                         user_msg = net_message.swap_remove(1);
                                         println!(" usr net msg 2 => {:?}", user_msg);
                         
-                                    }                                    
+                                    }      
+                                    else{
+                                        user_msg = [EMPTY_STRING; 3];
+                                    }                              
                                     println!(" usr net msg 3 => {:?}", user_msg);
                         
                                     println!(" usr net msg 4 => {:?}", user_msg[0]);
@@ -232,19 +238,22 @@ pub mod network{
     }        
     
     /// Broadcast message to all Network    
-    pub fn to_net(send_what: &str) {                
+    //pub fn to_net(send_what: &str) {    
+        pub fn to_net(send_what: String) {                
 
-        let message = serde_json::to_string(send_what).expect("Error");
+        //let message = serde_json::to_string(send_what).expect("Error");
 
         for n in 1..MAX_PEERS {         
 
-            let msg = message.clone();    
+            //let msg = message.clone();    
+            let msg = send_what.clone();    
 
             //Loop through all address
             let address = format!("192.168.191.{}:6886", n);
 
             //call client function to send message
-            thread::spawn(move || match client(&msg, &address, "simple"){
+            thread::spawn(move || match client(msg, &address, "simple"){
+            //thread::spawn(move || match client(&msg, &address, "simple"){
                 Ok(_) => (),
                 Err(e) => println!("On host {} Error found {}",address, e),
             });
@@ -252,7 +261,8 @@ pub mod network{
     }    
 
 
-    fn client(message: &str, address: &str, mode: &str)-> io::Result<()> {
+    //fn client(message: &str, address: &str, mode: &str)-> io::Result<()> {
+        fn client(message: String, address: &str, mode: &str)-> io::Result<()> {
         match mode {
             "simple" => {
                 // Connect to the server
