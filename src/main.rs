@@ -159,8 +159,13 @@ fn main() {
             println!(" net msg => {}", net_msg[0]);
             if net_msg[0] != EMPTY_STRING {                
     
-                //Call insert function to format and store in a block section
-                blocks.insert(net_msg.clone());
+                if !blocks.message.contains(&net_msg){
+
+                    //Call insert function to format and store in a block section
+                    blocks.insert(net_msg.clone());
+
+                }
+                
 
                 net_msg = [EMPTY_STRING; 3];
             }
