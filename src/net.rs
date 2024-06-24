@@ -1,8 +1,6 @@
 pub mod network{
     
     
-    //use std::os::unix::net::SocketAddr;
-    //use crate::block::Block;
     use std::thread;        
     use std::io::{self,Read, Write};
     use std::sync::mpsc::Sender;
@@ -37,12 +35,10 @@ pub mod network{
     
 
     fn handle_message(message: &String, mode: &str, tx: Sender<[String; 3]>) -> bool{
-
-        //let mut net_b = Block{
-          //  message: Vec::from([[EMPTY_STRING; 3]])
-        //};
-        let pure_msg = message.clone();
         //Function to treat incoming / outgoing messages        
+
+        let pure_msg = message.clone();
+        
         match mode {
 
             "send" => {false},
@@ -58,76 +54,30 @@ pub mod network{
                         println!("Received: {}", message);    
                         println!("Pure: {}", pure_msg);    
                         
-                        //let len = message.len();
-                        //let client_ver = &message[len - VER_SIZE -1 .. len];
-                        //let msg_code = &message[len - CODE_SIZE - VER_SIZE -1 .. len - VER_SIZE -1];    
-                        //let client_port = &message[len - PORT_SIZE - CODE_SIZE - VER_SIZE -1 .. len - CODE_SIZE - VER_SIZE -1];  
-                        //let msg = &message[1 .. len - CODE_SIZE - VER_SIZE -1];
-                        //let msg = String::from(&message[1 .. len - CODE_SIZE - VER_SIZE -1]);
-
-                        //net_b.message = serde_json::from_slice(&recv).expect("error ----");
-                        //println!(" net_b =>{:?}", net_b.message);
-
-                        //let mmsg: String = serde_json::from_str(&pure_msg).expect("error");
-                        //println!(" ------------------------ msg -> {}", mmsg );
-
                         let mut net_message :Vec<[String; 3]> = serde_json::from_str(&message).expect("Error");
-                        //let mut net_block: Block = serde_json::from_str(&message).expect("Error");
                         
-                        //let debug_msg = Vec::from(mmsg);
-                        //println!(" ------------------------ debug_msg -> {:?}", debug_msg );
-                        //let len = mmsg.len();
-                        //println!(" ------------------------ le msg -> {}", &mmsg[12 .. len -1 ] );
-
-                        //let fmsg = &mmsg[12 .. len -1 ];
-                        //let vmsg = Vec::from([fmsg]);
                         let msg_code = "00001";
-                        //println!("version -> {} & code -> {}", client_ver, msg_code);
                         
-                        //println!(" ------------------------ vmsg -> {:?}", vmsg );
-
                         match msg_code {
 
                             "00000" => println!("Message -> {}", msg),
 
                             "00001" => { //Block received
 
-                                //println!("in code ==== msg => {}", message);
-
-                                //let mut net_message :Vec<[String; 3]> = serde_json::from_str(&message).expect("Error");
-                                /*
-                                let mut net_message :Vec<[String; 3]> = match serde_json::from_str(&message) {
-                                    
-                                    Ok(n) => {
-                                        println!(" el n => {:?}", n);
-                                        n
-                                    },
-                                    Err(e) => {
-                                        println!("error found 1 {}", e);
-                                        Vec::from([[EMPTY_STRING; 3]])
-                                        } 
-                                };*/
-
-                                println!(" net msg 0 => {:?}", net_message);
-
-
                                 loop{
 
-                                    let mut user_msg: [String; 3] = [EMPTY_STRING; 3];
-                                    println!(" usr net msg 1 => {:?}", user_msg);
+                                    //let mut user_msg: [String; 3] = [EMPTY_STRING; 3];
+                                    let user_msg: [String; 3];
 
                                     if let Some(_) =  net_message.get(1){
 
                                         user_msg = net_message.swap_remove(1);
-                                        println!(" usr net msg 2 => {:?}", user_msg);
                         
                                     }      
                                     else{
                                         user_msg = [EMPTY_STRING; 3];
                                     }                              
-                                    println!(" usr net msg 3 => {:?}", user_msg);
-                        
-                                    println!(" usr net msg 4 => {:?}", user_msg[0]);
+                                    
                                     if user_msg[0] != EMPTY_STRING {
 
                                         //Send net message to main thread
@@ -137,8 +87,7 @@ pub mod network{
                                     }
                                     else {
                                         break;
-                                    }                        
-                        
+                                    }                      
                                 }                                
                             }
 
@@ -163,7 +112,7 @@ pub mod network{
     fn handle_client(mut stream: TcpStream, tx: Sender<[String; 3]>) {        
 
         let income_addr = stream.peer_addr().expect("Error");
-        //println!("Incoming connection from {}", stream.peer_addr()?);   
+        
         println!("Incoming connection from {}", income_addr);
         let mut buf = NET_BUFFER;
         
@@ -174,11 +123,7 @@ pub mod network{
             if bytes_read == 0 {break}
             
             let received = String::from_utf8_lossy(&buf[..bytes_read]);
-            //let recv = &buf[..bytes_read];
-            //let received = String::from_utf8(&buf[..bytes_read]).expect("error");
-
-            println!("first received {}", received);
-
+        
             let snd = tx.clone();
 
             if handle_message(&received.to_string(), "receive", snd) {
@@ -221,15 +166,13 @@ pub mod network{
         let listener = TcpListener::bind(addr).expect("Could not bind");
         println!("Server initialized...");
         
-        //thread::spawn( || to_net("!who_is_alive!"));
-
         for stream in listener.incoming(){
             let snd = tx.clone();
             match stream {
                 Err(e) => println!("Error found 0 {e}"),
                 Ok(stream) => {
                     thread::spawn(move || {
-                        //handle_client(stream).unwrap_or_else(|error| println!("Error {:?}", error));
+        
                         handle_client(stream, snd);
                     });
                 }
@@ -238,10 +181,7 @@ pub mod network{
     }        
     
     /// Broadcast message to all Network    
-    //pub fn to_net(send_what: &str) {    
         pub fn to_net(send_what: String) {                
-
-        //let message = serde_json::to_string(send_what).expect("Error");
 
         for n in 1..MAX_PEERS {         
 
@@ -253,7 +193,7 @@ pub mod network{
 
             //call client function to send message
             thread::spawn(move || match client(msg, &address, "simple"){
-            //thread::spawn(move || match client(&msg, &address, "simple"){
+
                 Ok(_) => (),
                 Err(e) => println!("On host {} Error found {}",address, e),
             });
@@ -261,8 +201,8 @@ pub mod network{
     }    
 
 
-    //fn client(message: &str, address: &str, mode: &str)-> io::Result<()> {
-        fn client(message: String, address: &str, mode: &str)-> io::Result<()> {
+    
+    fn client(message: String, address: &str, mode: &str)-> io::Result<()> {
         match mode {
             "simple" => {
                 // Connect to the server
