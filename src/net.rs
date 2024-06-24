@@ -37,8 +37,6 @@ pub mod network{
     fn handle_message(message: &String, mode: &str, tx: Sender<[String; 3]>) -> bool{
         //Function to treat incoming / outgoing messages        
 
-        let pure_msg = message.clone();
-        
         match mode {
 
             "send" => {false},
@@ -51,8 +49,7 @@ pub mod network{
                     "[!]_stream_[!]" => true, 
                                    
                     _ => {
-                        println!("Received: {}", message);    
-                        println!("Pure: {}", pure_msg);    
+                        println!("Received: {}", message); 
                         
                         let mut net_message :Vec<[String; 3]> = serde_json::from_str(&message).expect("Error");
                         
@@ -127,10 +124,14 @@ pub mod network{
             let snd = tx.clone();
 
             if handle_message(&received.to_string(), "receive", snd) {
-                                                     
+
+                //Repply to client that server is ready to receive stream                                     
                 stream.write_all("ready_to_receive".as_bytes()).expect("error");
-                // Receive data continuously from the server
+
+                //Create buffer to receive data
                 let mut buffer = NET_BUFFER;                    
+
+                // Receive data continuously from the server
                 loop {
                     match stream.read(&mut buffer) {
                         Ok(0) => {
@@ -158,6 +159,7 @@ pub mod network{
 
 
     pub fn net_init(tx: Sender<[String; 3]>){
+
         //Composing IP address with received port
         let mut addr = String::from("0.0.0.0:");
         addr.push_str(NET_PORT);
@@ -166,6 +168,7 @@ pub mod network{
         let listener = TcpListener::bind(addr).expect("Could not bind");
         println!("Server initialized...");
         
+        //Create a thread for each received connection
         for stream in listener.incoming(){
             let snd = tx.clone();
             match stream {
@@ -184,8 +187,7 @@ pub mod network{
         pub fn to_net(send_what: String) {                
 
         for n in 1..MAX_PEERS {         
-
-            //let msg = message.clone();    
+   
             let msg = send_what.clone();    
 
             //Loop through all address
@@ -214,8 +216,6 @@ pub mod network{
             "serialized" => {
                 // Connect to the server
                 let mut stream = TcpStream::connect(address)?;
-
-                //println!("Pre Serde {:?}", message);
 
                 let serialized = serde_json::to_string(&message)?;
                 stream.write_all(serialized.as_bytes())?;

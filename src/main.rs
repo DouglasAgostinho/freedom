@@ -18,7 +18,6 @@ use std::thread;
 //use net::network::{self, NET_PORT, VERSION};
 use net::network;
 use std::sync::mpsc::{self, Receiver, Sender};
-//use std::sync::mpsc::{self, Receiver, Sender};
 use block::{Block, Node};
 
 
@@ -139,7 +138,6 @@ fn main() {
                     thread::spawn(move || network::to_net(msg));
 
                     now = SystemTime::now();
-
                 }
             },
             Err(e) => println!("Error {}", e),            
@@ -149,8 +147,8 @@ fn main() {
         message_buffer.push(handle_thread_msg(&message_receiver));
 
         // Check for new messages from the network thread
-
         let mut net_msg: [String; 3] = handle_net_msg(&net_receiver);
+
         loop {
 
             println!(" net msg => {}", net_msg[0]);
@@ -174,7 +172,6 @@ fn main() {
 
             let mut user_msg: String = String::new();
 
-            //println!("Debug");
             if let Some(_) =  message_buffer.get(0){
 
                 user_msg = message_buffer.swap_remove(0);
@@ -198,20 +195,3 @@ fn main() {
     }
 
 }
-
-
-
-/*
-
-
-        // Check for new messages from the input thread
-        let user_msg = handle_thread_msg(&message_receiver);
-
-        // Check for new messages from the network thread
-        let net_msg = handle_thread_msg(&net_receiver);
-
-        println!(" net message => {}", net_msg);
-
-
-
-*/
