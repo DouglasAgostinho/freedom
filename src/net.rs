@@ -61,7 +61,7 @@ pub mod network{
                     _ => {
                         println!("Received: {}", message); 
                         
-                        let mut net_message :Vec<[String; 3]> = serde_json::from_str(&message).expect("Error");
+                        let mut net_message :Vec<[String; 3]> = serde_json::from_str(ser_msg).expect("Error");
                         
                         let msg_code = "00001";
                         
