@@ -16,7 +16,7 @@ use std::time::{Duration, SystemTime};
 use std::io; 
 use std::thread;
 //use net::network::{self, NET_PORT, VERSION};
-use net::network;
+use net::network::{self, VERSION};
 use std::sync::mpsc::{self, Receiver, Sender};
 use block::{Block, Node};
 
@@ -129,9 +129,9 @@ fn main() {
                     println!("One minute"); //to_do change to crate tracer event
 
                     //Propagate self IP address and port
-                    let message = serde_json::to_string(&blocks.message).expect("Error");
-                    //message.push_str("00001");    //00000 - code for life beat message (check message code table)
-                    //message.push_str(VERSION);
+                    let mut message = serde_json::to_string(&blocks.message).expect("Error");
+                    message.push_str("00001");    //00000 - code for life beat message (check message code table)
+                    message.push_str(VERSION);
 
                     let msg = message.clone();
                     //Spawn thread to propagate listening port to all network                  

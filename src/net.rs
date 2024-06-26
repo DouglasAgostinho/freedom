@@ -25,17 +25,27 @@ pub mod network{
     //pub const PORT_SIZE: usize = NET_PORT.len();
 
     //Software version
-    //pub const VERSION: &str = "000_01";
-    //pub const VER_SIZE: usize = VERSION.len();
+    pub const VERSION: &str = "000_01";
+    pub const VER_SIZE: usize = VERSION.len();
 
     //Message Code
-    //pub const INIT_CODE: &str = "00000";
-    //pub const CODE_SIZE: usize = INIT_CODE.len();
+    pub const TAIL_CODE: &str = "00000";
+    pub const CODE_SIZE: usize = TAIL_CODE.len();
     
     
 
     fn handle_message(message: &String, mode: &str, tx: Sender<[String; 3]>) -> bool{
         //Function to treat incoming / outgoing messages        
+
+        let msg_len = message.len();
+        
+        let msg_code = &message[ msg_len - CODE_SIZE - VER_SIZE .. msg_len - VER_SIZE];
+        let client_version = &message[ msg_len - VER_SIZE .. msg_len];
+
+        let ser_msg = &message[ .. msg_len - CODE_SIZE - VER_SIZE];
+
+        println!("Received: MSG => {}, VERSION => {}, CODE => {}", ser_msg, client_version, msg_code);
+
 
         match mode {
 
