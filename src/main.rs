@@ -11,14 +11,18 @@
 //Modules declaration
 mod net;
 mod block;
+mod crypt;
 
 use std::time::{Duration, SystemTime};
 use std::io; 
 use std::thread;
+use crypt::crypt::{generate_own_keys, generate_shared_key, encrypt, decrypt, test_keys};
 //use net::network::{self, NET_PORT, VERSION};
 use net::network::{self, VERSION};
 use std::sync::mpsc::{self, Receiver, Sender};
 use block::{Block, Node};
+//use ring::agreement::{EphemeralPrivateKey, PublicKey};
+use hex::encode;
 
 
 //Constant to use in String based variables
@@ -215,7 +219,24 @@ fn main() {
         
         println!(" Blocks => {:?}", blocks.message);
         blocks.message = get_msg_from_blocks(blocks.message, "remove".to_string());
-        thread::sleep(Duration::from_millis(3000));               
+        thread::sleep(Duration::from_millis(3000));    
+
+        
+        let client_pb_key = test_keys();
+
+        let (pv_key, _pb_key) = generate_own_keys();  
+
+        let shared_key = generate_shared_key(pv_key, client_pb_key);
+
+        let msg_to_crypt = "secretamente".to_string();
+        let crypt_msg = encrypt(shared_key, msg_to_crypt);
+
+        println!("Encriptada {:?}", encode(&crypt_msg));
+
+        let decrypted_msg = decrypt(shared_key, crypt_msg);
+
+        println!("Decriptada {}", decrypted_msg);
+
     }
 
 }
