@@ -39,12 +39,12 @@ pub mod network{
 
         let msg_len = message.len();
         
-        let msg_code = &message[ msg_len - CODE_SIZE - VER_SIZE .. msg_len - VER_SIZE];
-        let client_version = &message[ msg_len - VER_SIZE .. msg_len];
+        //let msg_code = &message[ msg_len - CODE_SIZE - VER_SIZE .. msg_len - VER_SIZE];
+        //let client_version = &message[ msg_len - VER_SIZE .. msg_len];
 
         let ser_msg = &message[ .. msg_len - CODE_SIZE - VER_SIZE];
 
-        println!("Received: MSG => {}, VERSION => {}, CODE => {}", ser_msg, client_version, msg_code);
+        //println!("Received: MSG => {}, VERSION => {}, CODE => {}", ser_msg, client_version, msg_code);
 
 
         match mode {

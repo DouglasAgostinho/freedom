@@ -29,6 +29,29 @@ const MINUTE: Duration = Duration::from_secs(10);
 
 //const MY_ADDRESS: &str = "xyz6886";
 
+///Receive an item from a Vector of vector(String) if match the NODE Address
+fn get_msg_from_blocks(mut block: Vec<[String; 3]>, addr: String) -> Vec<[String; 3]>{
+
+    //Create and vector to receive index of match messages
+    let mut to_remove = Vec::new();
+    
+    //Loop through Block messages to find desired value
+    for (num, val) in block.iter().enumerate(){
+    
+        if val[2] == addr {            
+            to_remove.push(num);
+        }
+    }
+    
+    //Loop to remove desired messages
+    for n in to_remove{
+        block.swap_remove(n);
+    }
+
+    //Return block without removed messages
+    block
+}
+
 
 fn local_users(tx: Sender<String>){
     
@@ -191,6 +214,7 @@ fn main() {
         }
         
         println!(" Blocks => {:?}", blocks.message);
+        blocks.message = get_msg_from_blocks(blocks.message, "remove".to_string());
         thread::sleep(Duration::from_millis(3000));               
     }
 
