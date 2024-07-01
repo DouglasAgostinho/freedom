@@ -32,6 +32,9 @@ const EMPTY_STRING: String = String::new();
 //Time constants
 const MINUTE: Duration = Duration::from_secs(10);
 
+//Logging path constant
+const LOG_PATH: &str = "/home/ares/Documentos/rust/fredoom";
+
 //const MY_ADDRESS: &str = "xyz6886";
 
 ///Receive an item from a Vector of vector(String) if match the NODE Address
@@ -133,7 +136,15 @@ fn handle_net_msg(message_receiver: &Receiver<[String; 3]>) -> [String; 3]{
 fn main() {    
 
     //Instatiate the subscriber.
-    tracing_subscriber::fmt::init();
+    //tracing_subscriber::fmt::init();
+    
+
+    let file_appender = tracing_appender::rolling::hourly(LOG_PATH, "log");
+    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+    tracing_subscriber::fmt()
+        .with_writer(non_blocking)
+        .init();
+
 
     //Entering Main Loggin Level
     let span: span::Span = span!(Level::INFO,"Main");

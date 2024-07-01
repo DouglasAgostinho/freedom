@@ -1,0 +1,22 @@
+[2m2024-07-01T21:23:38.771891Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 116.446µs
+[2m2024-07-01T21:23:38.772146Z[0m [32m INFO[0m [1mLocal menu[0m[2m:[0m [2mfredoom[0m[2m:[0m Please enter the message
+[2m2024-07-01T21:23:41.774216Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 3.002444554s
+[2m2024-07-01T21:23:44.776587Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 6.004814616s
+[2m2024-07-01T21:23:47.779013Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 9.00723909s
+[2m2024-07-01T21:23:50.781429Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 12.009655615s
+[2m2024-07-01T21:23:50.781538Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m One minute
+[2m2024-07-01T21:23:53.783601Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 3.001846049s
+[2m2024-07-01T21:23:56.202340Z[0m [32m INFO[0m [1mLocal menu[0m[2m:[0m [2mfredoom[0m[2m:[0m Please enter the message
+[2m2024-07-01T21:23:56.785963Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 6.004208907s
+[2m2024-07-01T21:23:56.786092Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mThread message[0m[2m:[0m [2mfredoom[0m[2m:[0m Received input: "a\n"
+[2m2024-07-01T21:23:59.788549Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 9.00679625s
+[2m2024-07-01T21:24:02.791304Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 12.009539662s
+[2m2024-07-01T21:24:02.791403Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m One minute
+[2m2024-07-01T21:24:05.793921Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 3.002371169s
+[2m2024-07-01T21:24:05.794081Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mNet message[0m[2m:[0m [2mfredoom[0m[2m:[0m Received input: ["1719869036786160141", "740cb5b6e8f76d929f07c34936d63cc8e3bd927d6d83146d0de5de996cda16e905d2d8fcd4e5ba066e24f80a88010cb85af59bd1aa39e1a42dfa1ab588a0c17c", "a"]
+[2m2024-07-01T21:24:08.796655Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 6.005103449s
+[2m2024-07-01T21:24:11.799209Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 9.007655602s
+[2m2024-07-01T21:24:14.801878Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 12.010326262s
+[2m2024-07-01T21:24:14.801976Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m One minute
+[2m2024-07-01T21:24:17.804524Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 3.002410063s
+[2m2024-07-01T21:24:17.804684Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mNet message[0m[2m:[0m [2mfredoom[0m[2m:[0m Received input: ["1719869036786160141", "740cb5b6e8f76d929f07c34936d63cc8e3bd927d6d83146d0de5de996cda16e905d2d8fcd4e5ba066e24f80a88010cb85af59bd1aa39e1a42dfa1ab588a0c17c", "a"]
