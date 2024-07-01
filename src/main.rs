@@ -13,16 +13,17 @@ mod net;
 mod block;
 mod crypt;
 
-use std::time::{Duration, SystemTime};
+
 use std::io; 
 use std::thread;
-use crypt::crypt::{generate_own_keys, generate_shared_key, encrypt, decrypt, test_keys};
-//use net::network::{self, NET_PORT, VERSION};
-use net::network::{self, VERSION};
-use std::sync::mpsc::{self, Receiver, Sender};
-use block::{Block, Node};
-//use ring::agreement::{EphemeralPrivateKey, PublicKey};
 use hex::encode;
+use block::{Block, Node};
+use net::network::{self, VERSION};
+use std::time::{Duration, SystemTime};
+use std::sync::mpsc::{self, Receiver, Sender};
+use tracing::{span, info, error, debug, Level};
+use crypt::crypt::{generate_own_keys, generate_shared_key, encrypt, decrypt, test_keys};
+
 
 
 //Constant to use in String based variables
@@ -58,13 +59,18 @@ fn get_msg_from_blocks(mut block: Vec<[String; 3]>, addr: String) -> Vec<[String
 
 
 fn local_users(tx: Sender<String>){
+
+    //Entering Local menu Loggin Level
+    let span: span::Span = span!(Level::INFO,"Local menu");
+    let _enter: span::Entered = span.enter();
+
     
     loop {                
         //Variable to receive user input
         let mut user_input = EMPTY_STRING;
 
         //Get user input
-        println!("Please enter the message");
+        info!("Please enter the message");
         match io::stdin().read_line(&mut user_input) {
             Ok(_) => (),
             Err(e) => println!("Error found {}", e),
@@ -80,10 +86,14 @@ fn local_users(tx: Sender<String>){
 
 fn handle_thread_msg(message_receiver: &Receiver<String>) -> String{
 
+    //Entering Thread message Loggin Level
+    let span: span::Span = span!(Level::INFO,"Thread message");
+    let _enter: span::Entered = span.enter();
+
     match message_receiver.try_recv() {
         Ok(msg) => {
             //Return input received
-            println!("Received input: {:?}", msg);
+            info!("Received input: {:?}", msg);
             msg
         },
         Err(mpsc::TryRecvError::Empty) => {
@@ -91,7 +101,7 @@ fn handle_thread_msg(message_receiver: &Receiver<String>) -> String{
             EMPTY_STRING
         }
         Err(mpsc::TryRecvError::Disconnected) => {
-            eprintln!("Input thread has disconnected.");
+            error!("Input thread has disconnected.");
             EMPTY_STRING
         }
     }
@@ -99,10 +109,14 @@ fn handle_thread_msg(message_receiver: &Receiver<String>) -> String{
 
 fn handle_net_msg(message_receiver: &Receiver<[String; 3]>) -> [String; 3]{
 
+    //Entering Net message Loggin Level
+    let span: span::Span = span!(Level::INFO,"Net message");
+    let _enter: span::Entered = span.enter();
+
     match message_receiver.try_recv() {
         Ok(msg) => {
             //Return input received
-            println!("Received input: {:?}", msg);
+            info!("Received input: {:?}", msg);
             msg
         },
         Err(mpsc::TryRecvError::Empty) => {
@@ -110,14 +124,23 @@ fn handle_net_msg(message_receiver: &Receiver<[String; 3]>) -> [String; 3]{
             [EMPTY_STRING; 3]
         }
         Err(mpsc::TryRecvError::Disconnected) => {
-            eprintln!("Input thread has disconnected.");
+            error!("Input thread has disconnected.");
             [EMPTY_STRING; 3]
         }
     }
 }
 
 fn main() {    
-    //Initial greetins
+
+    //Instatiate the subscriber.
+    tracing_subscriber::fmt::init();
+
+    //Entering Main Loggin Level
+    let span: span::Span = span!(Level::INFO,"Main");
+    let _enter: span::Entered = span.enter();
+    
+    
+    //Initial greetins (todo main menu)----------------------------------------------------------------------------------
     println!("Welcome to FREDOOM !!!");
 
     //Initiate Thread message channel Tx / Rx 
@@ -151,9 +174,9 @@ fn main() {
         match now.elapsed(){
 
             Ok(n) => {
-                println!("Tempo => {:?}", n); //Debug print - to_do change to crate tracer event
+                info!("Tempo => {:?}", n); //Debug print - to_do change to crate tracer event
                 if n >= MINUTE{
-                    println!("One minute"); //to_do change to crate tracer event
+                    info!("One minute"); //to_do change to crate tracer event
 
                     //Propagate self IP address and port
                     let mut message = serde_json::to_string(&blocks.message).expect("Error");
@@ -178,7 +201,7 @@ fn main() {
 
         loop {
 
-            println!(" net msg => {}", net_msg[0]);
+            debug!("Net msg => {}", net_msg[0]);
             if net_msg[0] != EMPTY_STRING {                
     
                 if !blocks.message.contains(&net_msg){
@@ -228,14 +251,16 @@ fn main() {
 
         let shared_key = generate_shared_key(pv_key, client_pb_key);
 
-        let msg_to_crypt = "secretamente".to_string();
+        //let msg_to_crypt = "secretamente".to_string();
+        let msg_to_crypt = serde_json::to_string(&blocks.message).expect("Error");
+
         let crypt_msg = encrypt(shared_key, msg_to_crypt);
 
-        println!("Encriptada {:?}", encode(&crypt_msg));
+        debug!("Encriptada {:?}", encode(&crypt_msg));
 
         let decrypted_msg = decrypt(shared_key, crypt_msg);
 
-        println!("Decriptada {}", decrypted_msg);
+        debug!("Decriptada {}", decrypted_msg);
 
     }
 

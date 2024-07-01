@@ -52,12 +52,11 @@ pub mod crypt{
     pub fn encrypt(shared_key: Digest, msg: String) -> Vec<u8>{        
 
         // Encrypt a message
-        //let message = b"Secret message";
-
         let message = msg.as_bytes();
         let iv = [0u8; 16]; // Initialization vector (should be random in practice)
 
         let mut buffer = message.to_vec();
+        
         // Pad buffer to the block size
         buffer.resize(message.len() + 16 - (message.len() % 16), 0);
 
