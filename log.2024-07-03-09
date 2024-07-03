@@ -21,3 +21,88 @@
 [2m2024-07-03T09:37:41.366779Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m One minute
 [2m2024-07-03T09:37:44.369551Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 3.002505405s
 [2m2024-07-03T09:37:44.369723Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mhandle_net_msg[0m[1m{[0m[3mmessage_receiver[0m[2m=[0mReceiver { .. }[1m}[0m[2m:[0m [2mfredoom[0m[2m:[0m Received input: ["1719999452358785531", "d0b295872ca305bdcd45637c1fb6613ea30fc3b26c6804b7604f5d2340696de08bfbd7bdfc2b4b708a6fa0cffd3e3a1d0fdee1219afbf8ad03af7288575dcf3c", "d"]
+[2m2024-07-03T09:43:00.730533Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 84.371µs
+[2m2024-07-03T09:43:00.730610Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mnet_init[0m[1m{[0m[3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m [2mfredoom::net::network[0m[2m:[0m Server initialized...
+[2m2024-07-03T09:43:00.730766Z[0m [32m INFO[0m [1mLocal menu[0m[2m:[0m [2mfredoom[0m[2m:[0m Please enter the message
+[2m2024-07-03T09:43:03.733193Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 3.002748234s
+[2m2024-07-03T09:43:05.738887Z[0m [32m INFO[0m [1mLocal menu[0m[2m:[0m [2mfredoom[0m[2m:[0m Please enter the message
+[2m2024-07-03T09:43:06.735923Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 6.005479561s
+[2m2024-07-03T09:43:06.736064Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mhandle_thread_msg[0m[1m{[0m[3mmessage_receiver[0m[2m=[0mReceiver { .. }[1m}[0m[2m:[0m [2mfredoom[0m[2m:[0m Received input: "sss\n"
+[2m2024-07-03T09:43:09.738419Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 9.007980053s
+[2m2024-07-03T09:43:12.741165Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 12.01072157s
+[2m2024-07-03T09:43:12.741292Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m One minute
+[2m2024-07-03T09:43:15.743988Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 3.002398095s
+[2m2024-07-03T09:43:15.744176Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mhandle_net_msg[0m[1m{[0m[3mmessage_receiver[0m[2m=[0mReceiver { .. }[1m}[0m[2m:[0m [2mfredoom[0m[2m:[0m Received input: ["1719999786736153995", "035b1892d3948b007a7a7ac90e0bd2ba6c2e49e00c22cafe4fc74697d77e0d43f4d48ad33676f0c9b10aae24848ee295a9525763572c7fe2337104a4a6a69c82", "sss"]
+[2m2024-07-03T09:43:18.746751Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 6.005156087s
+[2m2024-07-03T09:43:21.749521Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 9.007926577s
+[2m2024-07-03T09:43:24.752249Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 12.010655438s
+[2m2024-07-03T09:43:24.752372Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m One minute
+[2m2024-07-03T09:43:27.755280Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 3.002691909s
+[2m2024-07-03T09:43:27.755495Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mhandle_net_msg[0m[1m{[0m[3mmessage_receiver[0m[2m=[0mReceiver { .. }[1m}[0m[2m:[0m [2mfredoom[0m[2m:[0m Received input: ["1719999786736153995", "035b1892d3948b007a7a7ac90e0bd2ba6c2e49e00c22cafe4fc74697d77e0d43f4d48ad33676f0c9b10aae24848ee295a9525763572c7fe2337104a4a6a69c82", "sss"]
+[2m2024-07-03T09:43:30.758085Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 6.005481665s
+[2m2024-07-03T09:47:16.030583Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 98.13µs
+[2m2024-07-03T09:47:16.030754Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mnet_init[0m[1m{[0m[3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m [2mfredoom::net::network[0m[2m:[0m Server initialized...
+[2m2024-07-03T09:47:16.030777Z[0m [32m INFO[0m [1mLocal menu[0m[2m:[0m [2mfredoom[0m[2m:[0m Please enter the message
+[2m2024-07-03T09:47:19.033100Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 3.002619461s
+[2m2024-07-03T09:47:20.651379Z[0m [32m INFO[0m [1mLocal menu[0m[2m:[0m [2mfredoom[0m[2m:[0m Please enter the message
+[2m2024-07-03T09:47:22.035788Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 6.005319938s
+[2m2024-07-03T09:47:22.035929Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mhandle_thread_msg[0m[1m{[0m[3mmessage_receiver[0m[2m=[0mReceiver { .. }[1m}[0m[2m:[0m [2mfredoom[0m[2m:[0m Received input: "asd\n"
+[2m2024-07-03T09:47:25.038420Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 9.007948823s
+[2m2024-07-03T09:47:28.040792Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 12.010323757s
+[2m2024-07-03T09:47:28.040901Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m One minute
+[2m2024-07-03T09:47:28.042785Z[0m [32m INFO[0m [1mhandle_client[0m[1m{[0m[3mstream[0m[2m=[0mTcpStream { addr: 192.168.191.2:6886, peer: 192.168.191.2:46456, fd: 5 } [3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m [2mfredoom::net::network[0m[2m:[0m Incoming connection from 192.168.191.2:46456
+[2m2024-07-03T09:47:28.043127Z[0m [32m INFO[0m [1mhandle_client[0m[1m{[0m[3mstream[0m[2m=[0mTcpStream { addr: 192.168.191.2:6886, peer: 192.168.191.2:46456, fd: 5 } [3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m [2mfredoom::net::network[0m[2m:[0m Connection closed by server
+[2m2024-07-03T09:47:28.072298Z[0m [31mERROR[0m [2mfredoom::net::network[0m[2m:[0m On host 192.168.191.1:6886 Error found Connection refused (os error 111)
+[2m2024-07-03T09:47:31.043568Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 3.002409713s
+[2m2024-07-03T09:47:31.043741Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mhandle_net_msg[0m[1m{[0m[3mmessage_receiver[0m[2m=[0mReceiver { .. }[1m}[0m[2m:[0m [2mfredoom[0m[2m:[0m Received input: ["1720000042036004122", "82cfcdc78531d5c222d5663caa5df7bd93dd61c30d06e7ff330ed5f4979ff56f2160dfb30fd4f9de7925ee13b8bb8354330f872a9a07bc2491d3fdd6d1746962", "asd"]
+[2m2024-07-03T09:47:31.120498Z[0m [31mERROR[0m [2mfredoom::net::network[0m[2m:[0m On host 192.168.191.3:6886 Error found No route to host (os error 113)
+[2m2024-07-03T09:47:31.120593Z[0m [31mERROR[0m [2mfredoom::net::network[0m[2m:[0m On host 192.168.191.4:6886 Error found No route to host (os error 113)
+[2m2024-07-03T09:47:34.046438Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 6.005273334s
+[2m2024-07-03T09:47:37.049110Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 9.007951589s
+[2m2024-07-03T09:47:40.051846Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 12.010684669s
+[2m2024-07-03T09:47:40.051971Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m One minute
+[2m2024-07-03T09:47:40.053605Z[0m [32m INFO[0m [1mhandle_client[0m[1m{[0m[3mstream[0m[2m=[0mTcpStream { addr: 192.168.191.2:6886, peer: 192.168.191.2:56050, fd: 9 } [3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m [2mfredoom::net::network[0m[2m:[0m Incoming connection from 192.168.191.2:56050
+[2m2024-07-03T09:47:40.053909Z[0m [32m INFO[0m [1mhandle_client[0m[1m{[0m[3mstream[0m[2m=[0mTcpStream { addr: 192.168.191.2:6886, peer: 192.168.191.2:56050, fd: 9 } [3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m [2mfredoom::net::network[0m[2m:[0m Connection closed by server
+[2m2024-07-03T09:47:40.073681Z[0m [31mERROR[0m [2mfredoom::net::network[0m[2m:[0m On host 192.168.191.1:6886 Error found Connection refused (os error 111)
+[2m2024-07-03T09:47:43.054717Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 3.002516703s
+[2m2024-07-03T09:47:43.054889Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mhandle_net_msg[0m[1m{[0m[3mmessage_receiver[0m[2m=[0mReceiver { .. }[1m}[0m[2m:[0m [2mfredoom[0m[2m:[0m Received input: ["1720000042036004122", "82cfcdc78531d5c222d5663caa5df7bd93dd61c30d06e7ff330ed5f4979ff56f2160dfb30fd4f9de7925ee13b8bb8354330f872a9a07bc2491d3fdd6d1746962", "asd"]
+[2m2024-07-03T09:47:43.152635Z[0m [31mERROR[0m [2mfredoom::net::network[0m[2m:[0m On host 192.168.191.3:6886 Error found No route to host (os error 113)
+[2m2024-07-03T09:47:43.152772Z[0m [31mERROR[0m [2mfredoom::net::network[0m[2m:[0m On host 192.168.191.4:6886 Error found No route to host (os error 113)
+[2m2024-07-03T09:50:20.706941Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 140.147µs
+[2m2024-07-03T09:50:20.707058Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mnet_init[0m[1m{[0m[3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m [2mfredoom::net::network[0m[2m:[0m Server initialized...
+[2m2024-07-03T09:50:20.707302Z[0m [32m INFO[0m [1mLocal menu[0m[2m:[0m [2mfredoom[0m[2m:[0m Please enter the message
+[2m2024-07-03T09:50:23.400768Z[0m [32m INFO[0m [1mLocal menu[0m[2m:[0m [2mfredoom[0m[2m:[0m Please enter the message
+[2m2024-07-03T09:50:23.709227Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 3.002427276s
+[2m2024-07-03T09:50:23.709369Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mhandle_thread_msg[0m[1m{[0m[3mmessage_receiver[0m[2m=[0mReceiver { .. }[1m}[0m[2m:[0m [2mfredoom[0m[2m:[0m Received input: "qwerty\n"
+[2m2024-07-03T09:50:26.711726Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 6.00492597s
+[2m2024-07-03T09:50:29.714267Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 9.007462821s
+[2m2024-07-03T09:50:32.716869Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 12.010069452s
+[2m2024-07-03T09:50:32.716979Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m One minute
+[2m2024-07-03T09:50:32.719063Z[0m [32m INFO[0m [1mhandle_client[0m[1m{[0m[3mstream[0m[2m=[0mTcpStream { addr: 192.168.191.2:6886, peer: 192.168.191.2:54324, fd: 5 } [3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m [2mfredoom::net::network[0m[2m:[0m Incoming connection from 192.168.191.2:54324
+[2m2024-07-03T09:50:32.719289Z[0m [32m INFO[0m [1mhandle_client[0m[1m{[0m[3mstream[0m[2m=[0mTcpStream { addr: 192.168.191.2:6886, peer: 192.168.191.2:54324, fd: 5 } [3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m[1mhandle_message[0m[1m{[0m"[[\"\",\"\",\"\"],[\"1720000223709448100\",\"c65706ab76ce16325e8d3e4d1cdeb18e9146896ce29c03cf712fe9c3d135b25dc22ee4da23518be1cb50e7330983e5b919c02db9e14f301820a4deac7752967f\",\"qwerty\"]]00001000_01" [3mmode[0m[2m=[0m"receive" [3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m [2mfredoom::net::network[0m[2m:[0m Received: [["","",""],["1720000223709448100","c65706ab76ce16325e8d3e4d1cdeb18e9146896ce29c03cf712fe9c3d135b25dc22ee4da23518be1cb50e7330983e5b919c02db9e14f301820a4deac7752967f","qwerty"]]00001000_01
+[2m2024-07-03T09:50:32.719440Z[0m [32m INFO[0m [1mhandle_client[0m[1m{[0m[3mstream[0m[2m=[0mTcpStream { addr: 192.168.191.2:6886, peer: 192.168.191.2:54324, fd: 5 } [3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m [2mfredoom::net::network[0m[2m:[0m Connection closed by server
+[2m2024-07-03T09:50:32.793172Z[0m [31mERROR[0m [2mfredoom::net::network[0m[2m:[0m On host 192.168.191.1:6886 Error found Connection refused (os error 111)
+[2m2024-07-03T09:50:35.719905Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 3.002644548s
+[2m2024-07-03T09:50:35.720092Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mhandle_net_msg[0m[1m{[0m[3mmessage_receiver[0m[2m=[0mReceiver { .. }[1m}[0m[2m:[0m [2mfredoom[0m[2m:[0m Received input: ["1720000223709448100", "c65706ab76ce16325e8d3e4d1cdeb18e9146896ce29c03cf712fe9c3d135b25dc22ee4da23518be1cb50e7330983e5b919c02db9e14f301820a4deac7752967f", "qwerty"]
+[2m2024-07-03T09:50:35.824659Z[0m [31mERROR[0m [2mfredoom::net::network[0m[2m:[0m On host 192.168.191.4:6886 Error found No route to host (os error 113)
+[2m2024-07-03T09:50:35.824685Z[0m [31mERROR[0m [2mfredoom::net::network[0m[2m:[0m On host 192.168.191.3:6886 Error found No route to host (os error 113)
+[2m2024-07-03T09:50:38.722539Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 6.005277695s
+[2m2024-07-03T09:50:41.724966Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 9.007704254s
+[2m2024-07-03T09:50:44.727740Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 12.01047928s
+[2m2024-07-03T09:50:44.727840Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m One minute
+[2m2024-07-03T09:50:44.729153Z[0m [32m INFO[0m [1mhandle_client[0m[1m{[0m[3mstream[0m[2m=[0mTcpStream { addr: 192.168.191.2:6886, peer: 192.168.191.2:58804, fd: 9 } [3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m [2mfredoom::net::network[0m[2m:[0m Incoming connection from 192.168.191.2:58804
+[2m2024-07-03T09:50:44.729355Z[0m [32m INFO[0m [1mhandle_client[0m[1m{[0m[3mstream[0m[2m=[0mTcpStream { addr: 192.168.191.2:6886, peer: 192.168.191.2:58804, fd: 9 } [3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m[1mhandle_message[0m[1m{[0m"[[\"\",\"\",\"\"],[\"1720000223709448100\",\"c65706ab76ce16325e8d3e4d1cdeb18e9146896ce29c03cf712fe9c3d135b25dc22ee4da23518be1cb50e7330983e5b919c02db9e14f301820a4deac7752967f\",\"qwerty\"]]00001000_01" [3mmode[0m[2m=[0m"receive" [3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m [2mfredoom::net::network[0m[2m:[0m Received: [["","",""],["1720000223709448100","c65706ab76ce16325e8d3e4d1cdeb18e9146896ce29c03cf712fe9c3d135b25dc22ee4da23518be1cb50e7330983e5b919c02db9e14f301820a4deac7752967f","qwerty"]]00001000_01
+[2m2024-07-03T09:50:44.729529Z[0m [32m INFO[0m [1mhandle_client[0m[1m{[0m[3mstream[0m[2m=[0mTcpStream { addr: 192.168.191.2:6886, peer: 192.168.191.2:58804, fd: 9 } [3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m [2mfredoom::net::network[0m[2m:[0m Connection closed by server
+[2m2024-07-03T09:50:44.746818Z[0m [31mERROR[0m [2mfredoom::net::network[0m[2m:[0m On host 192.168.191.1:6886 Error found Connection refused (os error 111)
+[2m2024-07-03T09:50:47.730310Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 3.002323512s
+[2m2024-07-03T09:50:47.730480Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mhandle_net_msg[0m[1m{[0m[3mmessage_receiver[0m[2m=[0mReceiver { .. }[1m}[0m[2m:[0m [2mfredoom[0m[2m:[0m Received input: ["1720000223709448100", "c65706ab76ce16325e8d3e4d1cdeb18e9146896ce29c03cf712fe9c3d135b25dc22ee4da23518be1cb50e7330983e5b919c02db9e14f301820a4deac7752967f", "qwerty"]
+[2m2024-07-03T09:50:47.792663Z[0m [31mERROR[0m [2mfredoom::net::network[0m[2m:[0m On host 192.168.191.3:6886 Error found No route to host (os error 113)
+[2m2024-07-03T09:50:47.792681Z[0m [31mERROR[0m [2mfredoom::net::network[0m[2m:[0m On host 192.168.191.4:6886 Error found No route to host (os error 113)
+[2m2024-07-03T09:50:50.733087Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 6.005087845s
+[2m2024-07-03T09:50:53.735687Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 9.007700897s
+[2m2024-07-03T09:50:56.738169Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 12.010182414s
+[2m2024-07-03T09:50:56.738274Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m One minute
+[2m2024-07-03T09:50:56.739519Z[0m [32m INFO[0m [1mhandle_client[0m[1m{[0m[3mstream[0m[2m=[0mTcpStream { addr: 192.168.191.2:6886, peer: 192.168.191.2:44650, fd: 5 } [3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m [2mfredoom::net::network[0m[2m:[0m Incoming connection from 192.168.191.2:44650
+[2m2024-07-03T09:50:56.739684Z[0m [32m INFO[0m [1mhandle_client[0m[1m{[0m[3mstream[0m[2m=[0mTcpStream { addr: 192.168.191.2:6886, peer: 192.168.191.2:44650, fd: 5 } [3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m[1mhandle_message[0m[1m{[0m"[[\"\",\"\",\"\"],[\"1720000223709448100\",\"c65706ab76ce16325e8d3e4d1cdeb18e9146896ce29c03cf712fe9c3d135b25dc22ee4da23518be1cb50e7330983e5b919c02db9e14f301820a4deac7752967f\",\"qwerty\"]]00001000_01" [3mmode[0m[2m=[0m"receive" [3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m [2mfredoom::net::network[0m[2m:[0m Received: [["","",""],["1720000223709448100","c65706ab76ce16325e8d3e4d1cdeb18e9146896ce29c03cf712fe9c3d135b25dc22ee4da23518be1cb50e7330983e5b919c02db9e14f301820a4deac7752967f","qwerty"]]00001000_01
+[2m2024-07-03T09:50:56.739823Z[0m [32m INFO[0m [1mhandle_client[0m[1m{[0m[3mstream[0m[2m=[0mTcpStream { addr: 192.168.191.2:6886, peer: 192.168.191.2:44650, fd: 5 } [3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m [2mfredoom::net::network[0m[2m:[0m Connection closed by server
+[2m2024-07-03T09:50:56.761503Z[0m [31mERROR[0m [2mfredoom::net::network[0m[2m:[0m On host 192.168.191.1:6886 Error found Connection refused (os error 111)

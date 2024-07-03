@@ -156,8 +156,9 @@ fn main() {
     let (input_message, message_receiver) = mpsc::channel();
     let (net_message, net_receiver) = mpsc::channel();
 
+    let sspan = span.clone();
     //Spawn thread for server initialization    
-    thread::spawn( move || network::net_init(net_message));
+    thread::spawn( move || sspan.in_scope(move || network::net_init(net_message)));
 
     //Instance of Block struct    
     let mut blocks: Block = Block{

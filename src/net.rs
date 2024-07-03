@@ -4,7 +4,9 @@ pub mod network{
     use std::thread;        
     use std::io::{self,Read, Write};
     use std::sync::mpsc::Sender;
-    use std::net::{TcpListener, TcpStream};    
+    use std::net::{TcpListener, TcpStream};
+
+    use tracing::{instrument, info, error};    
     //use sha2::digest::consts::False;
     
 
@@ -33,7 +35,7 @@ pub mod network{
     pub const CODE_SIZE: usize = TAIL_CODE.len();
     
     
-
+    #[instrument]
     fn handle_message(message: &String, mode: &str, tx: Sender<[String; 3]>) -> bool{
         //Function to treat incoming / outgoing messages        
 
@@ -59,7 +61,7 @@ pub mod network{
                     "[!]_stream_[!]" => true, 
                                    
                     _ => {
-                        println!("Received: {}", message); 
+                        info!("Received: {}", message); 
                         
                         let mut net_message :Vec<[String; 3]> = serde_json::from_str(ser_msg).expect("Error");
                         
@@ -89,7 +91,7 @@ pub mod network{
 
                                         //Send net message to main thread
                                         if tx.send(user_msg).is_err() {
-                                            eprintln!("Failed to send message to main thread.");                                    
+                                            error!("Failed to send message to main thread.");                                    
                                         }                                        
                                     }
                                     else {
@@ -115,12 +117,12 @@ pub mod network{
         }
     }
 
-
+    #[instrument]
     fn handle_client(mut stream: TcpStream, tx: Sender<[String; 3]>) {        
 
         let income_addr = stream.peer_addr().expect("Error");
         
-        println!("Incoming connection from {}", income_addr);
+        info!("Incoming connection from {}", income_addr);
         let mut buf = NET_BUFFER;
         
 
@@ -145,7 +147,7 @@ pub mod network{
                 loop {
                     match stream.read(&mut buffer) {
                         Ok(0) => {
-                            println!("Connection closed by server");
+                            info!("Connection closed by server");
                             break;
                         },
                         Ok(n) => {
@@ -154,20 +156,20 @@ pub mod network{
                             io::stdout().flush().expect("error");  // Ensure immediate output
                         },
                         Err(e) => {
-                            println!("Failed to receive message: {}", e);
+                            error!("Failed to receive message: {}", e);
                             break;
                         }
                     }
                 }                    
             } 
             else {
-                println!("Connection closed by server");
+                info!("Connection closed by server");
                 break;                
             }           
         }
     }
 
-
+    #[instrument]
     pub fn net_init(tx: Sender<[String; 3]>){
 
         //Composing IP address with received port
@@ -176,13 +178,14 @@ pub mod network{
 
         //Set system to listen
         let listener = TcpListener::bind(addr).expect("Could not bind");
-        println!("Server initialized...");
+        //println!("Server initialized...");
+        info!("Server initialized...");
         
         //Create a thread for each received connection
         for stream in listener.incoming(){
             let snd = tx.clone();
             match stream {
-                Err(e) => println!("Error found 0 {e}"),
+                Err(e) => error!("Error found 0 {e}"),
                 Ok(stream) => {
                     thread::spawn(move || {
         
@@ -193,8 +196,9 @@ pub mod network{
         }
     }        
     
-    /// Broadcast message to all Network    
-        pub fn to_net(send_what: String) {                
+    /// Broadcast message to all Network
+    #[instrument]
+    pub fn to_net(send_what: String) {                
 
         for n in 1..MAX_PEERS {         
    
@@ -207,7 +211,7 @@ pub mod network{
             thread::spawn(move || match client(msg, &address, "simple"){
 
                 Ok(_) => (),
-                Err(e) => println!("On host {} Error found {}",address, e),
+                Err(e) => error!("On host {} Error found {}",address, e),
             });
         }
     }    
