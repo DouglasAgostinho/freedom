@@ -21,7 +21,7 @@ use block::{Block, Node};
 use net::network::{self, VERSION};
 use std::time::{Duration, SystemTime};
 use std::sync::mpsc::{self, Receiver, Sender};
-use tracing::{span, info, error, debug, Level};
+use tracing::{span, info, error, debug, Level, instrument};
 use crypt::crypt::{generate_own_keys, generate_shared_key, encrypt, decrypt, test_keys};
 
 
@@ -87,11 +87,12 @@ fn local_users(tx: Sender<String>){
     }  
 }
 
+#[instrument] //Tracing auto span generation
 fn handle_thread_msg(message_receiver: &Receiver<String>) -> String{
 
     //Entering Thread message Loggin Level
-    let span: span::Span = span!(Level::INFO,"Thread message");
-    let _enter: span::Entered = span.enter();
+    //let span: span::Span = span!(Level::INFO,"Thread message");
+    //let _enter: span::Entered = span.enter();
 
     match message_receiver.try_recv() {
         Ok(msg) => {
@@ -110,11 +111,12 @@ fn handle_thread_msg(message_receiver: &Receiver<String>) -> String{
     }
 }
 
+#[instrument] //Tracing auto span generation
 fn handle_net_msg(message_receiver: &Receiver<[String; 3]>) -> [String; 3]{
 
     //Entering Net message Loggin Level
-    let span: span::Span = span!(Level::INFO,"Net message");
-    let _enter: span::Entered = span.enter();
+    //let span: span::Span = span!(Level::INFO,"Net message");
+    //let _enter: span::Entered = span.enter();
 
     match message_receiver.try_recv() {
         Ok(msg) => {
@@ -136,15 +138,11 @@ fn handle_net_msg(message_receiver: &Receiver<[String; 3]>) -> [String; 3]{
 fn main() {    
 
     //Instatiate the subscriber.
-    //tracing_subscriber::fmt::init();
-    
-
     let file_appender = tracing_appender::rolling::hourly(LOG_PATH, "log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
     tracing_subscriber::fmt()
         .with_writer(non_blocking)
         .init();
-
 
     //Entering Main Loggin Level
     let span: span::Span = span!(Level::INFO,"Main");

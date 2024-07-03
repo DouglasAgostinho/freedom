@@ -1,0 +1,23 @@
+[2m2024-07-03T09:35:51.037795Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 126.206µs
+[2m2024-07-03T09:35:51.038116Z[0m [32m INFO[0m [1mLocal menu[0m[2m:[0m [2mfredoom[0m[2m:[0m Please enter the message
+[2m2024-07-03T09:35:54.040296Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 3.002674305s
+[2m2024-07-03T09:35:55.163611Z[0m [32m INFO[0m [1mLocal menu[0m[2m:[0m [2mfredoom[0m[2m:[0m Please enter the message
+[2m2024-07-03T09:35:57.042962Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 6.005337147s
+[2m2024-07-03T09:35:57.043155Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mhandle_thread_msg[0m[1m{[0m[3mmessage_receiver[0m[2m=[0mReceiver { .. }[1m}[0m[2m:[0m [2mfredoom[0m[2m:[0m Received input: "a\n"
+[2m2024-07-03T09:36:00.045738Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 9.008116548s
+[2m2024-07-03T09:36:03.048448Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 12.010828053s
+[2m2024-07-03T09:36:03.048557Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m One minute
+[2m2024-07-03T09:36:06.051417Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 3.002664701s
+[2m2024-07-03T09:36:06.051582Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mNet message[0m[2m:[0m [2mfredoom[0m[2m:[0m Received input: ["1719999357043251883", "fe6ca147fae1b5df7fbd554e8bbbe80f2f3bbe55c44bf4ae07f65db03a54ce2144dfcc22de0a5129223e433a51c7fda16c5a221f8f27da66913dfc498a8e0cad", "a"]
+[2m2024-07-03T09:36:09.054162Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 6.005408804s
+[2m2024-07-03T09:37:29.356510Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 144.855µs
+[2m2024-07-03T09:37:29.356826Z[0m [32m INFO[0m [1mLocal menu[0m[2m:[0m [2mfredoom[0m[2m:[0m Please enter the message
+[2m2024-07-03T09:37:31.500647Z[0m [32m INFO[0m [1mLocal menu[0m[2m:[0m [2mfredoom[0m[2m:[0m Please enter the message
+[2m2024-07-03T09:37:32.358530Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 3.002167115s
+[2m2024-07-03T09:37:32.358690Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mhandle_thread_msg[0m[1m{[0m[3mmessage_receiver[0m[2m=[0mReceiver { .. }[1m}[0m[2m:[0m [2mfredoom[0m[2m:[0m Received input: "d\n"
+[2m2024-07-03T09:37:35.361359Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 6.004994799s
+[2m2024-07-03T09:37:38.364131Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 9.007767578s
+[2m2024-07-03T09:37:41.366649Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 12.010285074s
+[2m2024-07-03T09:37:41.366779Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m One minute
+[2m2024-07-03T09:37:44.369551Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 3.002505405s
+[2m2024-07-03T09:37:44.369723Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mhandle_net_msg[0m[1m{[0m[3mmessage_receiver[0m[2m=[0mReceiver { .. }[1m}[0m[2m:[0m [2mfredoom[0m[2m:[0m Received input: ["1719999452358785531", "d0b295872ca305bdcd45637c1fb6613ea30fc3b26c6804b7604f5d2340696de08bfbd7bdfc2b4b708a6fa0cffd3e3a1d0fdee1219afbf8ad03af7288575dcf3c", "d"]
