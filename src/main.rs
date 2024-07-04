@@ -5,6 +5,7 @@
 
     #Message code table version - 000.01
     00000 - life beat message that broadcast listening port.
+    00001 - Block propagation
 
 */
 
@@ -16,16 +17,15 @@ mod crypt;
 
 use std::io; 
 use std::thread;
-use hex::encode;
-use base64::prelude::*;
+//use hex::encode;
+//use base64::prelude::*;
 use block::{Block, Node};
 use net::network::{self, VERSION};
 use std::time::{Duration, SystemTime};
 use std::sync::mpsc::{self, Receiver, Sender};
-use tracing::{span, info, error, debug, Level, instrument};
-use ring::agreement::{UnparsedPublicKey, X25519};
-use crypt::crypt::{generate_own_keys, generate_shared_key, encrypt, decrypt, test_keys};
-
+use tracing::{span, info, error, Level, instrument};
+//use ring::agreement::{UnparsedPublicKey, X25519};
+//use crypt::crypt::{generate_own_keys, generate_shared_key, encrypt, decrypt, test_keys};
 
 
 //Constant to use in String based variables
@@ -37,12 +37,11 @@ const MINUTE: Duration = Duration::from_secs(10);
 //Logging path constant
 const LOG_PATH: &str = "/home/ares/Documentos/rust/fredoom";
 
-//const MY_ADDRESS: &str = "xyz6886";
 
 ///Receive an item from a Vector of vector(String) if match the NODE Address
 fn get_msg_from_blocks(mut block: Vec<[String; 3]>, addr: String) -> Vec<[String; 3]>{
 
-    //Create and vector to receive index of match messages
+    //Create a vector to receive index of match messages
     let mut to_remove = Vec::new();
     
     //Loop through Block messages to find desired value
@@ -68,7 +67,6 @@ fn local_users(tx: Sender<String>){
     //Entering Local menu Loggin Level
     let span: span::Span = span!(Level::INFO,"Local menu");
     let _enter: span::Entered = span.enter();
-
     
     loop {                
         //Variable to receive user input
@@ -78,12 +76,12 @@ fn local_users(tx: Sender<String>){
         info!("Please enter the message");
         match io::stdin().read_line(&mut user_input) {
             Ok(_) => (),
-            Err(e) => println!("Error found {}", e),
+            Err(e) => error!("Error found {}", e),
         }        
 
         //Send user input to main thread
         if tx.send(user_input).is_err() {
-            eprintln!("Failed to send input to main thread.");
+            error!("Failed to send input to main thread.");
             break;
         }
     }  
@@ -91,10 +89,6 @@ fn local_users(tx: Sender<String>){
 
 #[instrument] //Tracing auto span generation
 fn handle_thread_msg(message_receiver: &Receiver<String>) -> String{
-
-    //Entering Thread message Loggin Level
-    //let span: span::Span = span!(Level::INFO,"Thread message");
-    //let _enter: span::Entered = span.enter();
 
     match message_receiver.try_recv() {
         Ok(msg) => {
@@ -116,10 +110,6 @@ fn handle_thread_msg(message_receiver: &Receiver<String>) -> String{
 #[instrument] //Tracing auto span generation
 fn handle_net_msg(message_receiver: &Receiver<[String; 3]>) -> [String; 3]{
 
-    //Entering Net message Loggin Level
-    //let span: span::Span = span!(Level::INFO,"Net message");
-    //let _enter: span::Entered = span.enter();
-
     match message_receiver.try_recv() {
         Ok(msg) => {
             //Return input received
@@ -139,7 +129,7 @@ fn handle_net_msg(message_receiver: &Receiver<[String; 3]>) -> [String; 3]{
 
 fn main() {    
 
-    //Instatiate the subscriber.
+    //Instatiate the subscriber & file appender
     let file_appender = tracing_appender::rolling::hourly(LOG_PATH, "log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
     tracing_subscriber::fmt()
@@ -186,13 +176,19 @@ fn main() {
         match now.elapsed(){
 
             Ok(n) => {
-                info!("Tempo => {:?}", n); //Debug print - to_do change to crate tracer event
+                info!("Tempo => {:?}", n); 
                 if n >= MINUTE{
-                    info!("One minute"); //to_do change to crate tracer event
+                    info!("One minute"); 
 
-                    //Propagate self IP address and port
-                    let mut message = serde_json::to_string(&blocks.message).expect("Error");
-                    message.push_str("00001");    //00000 - code for life beat message (check message code table)
+                    //Propagate message block
+                    let mut message = match serde_json::to_string(&blocks.message){
+                        Ok(msg) => msg,
+                        Err(e) => {
+                            error!("Error while serializing message {}", e);
+                            EMPTY_STRING
+                        },
+                    };
+                    message.push_str("00001");    //00001 - code for block propagation (check message code table)
                     message.push_str(VERSION);
 
                     let msg = message.clone();
@@ -202,7 +198,7 @@ fn main() {
                     now = SystemTime::now();
                 }
             },
-            Err(e) => println!("Error {}", e),            
+            Err(e) => error!("Error {}", e),            
         }        
 
         // Check for new messages from the input thread
@@ -213,9 +209,8 @@ fn main() {
 
         loop {
 
-            debug!("Net msg => {}", net_msg[0]);
-            if net_msg[0] != EMPTY_STRING {                
-    
+            if net_msg[0] != EMPTY_STRING {
+                
                 if !blocks.message.contains(&net_msg){
 
                     //Call insert function to format and store in a block section
@@ -256,32 +251,37 @@ fn main() {
         blocks.message = get_msg_from_blocks(blocks.message, "remove".to_string());
         thread::sleep(Duration::from_millis(3000));    
 
-        
-        let test_pb_key = test_keys();
-
-        let pb_encoded = BASE64_STANDARD.encode(test_pb_key);
-
-        let pb_decoded = BASE64_STANDARD.decode(pb_encoded);
-
-        let client_pb_key = UnparsedPublicKey::new(&X25519, pb_decoded.clone().expect("error"));
-
-        let (pv_key, _pb_key) = generate_own_keys();  
-
-        let shared_key = generate_shared_key(pv_key, client_pb_key);
-
-        //let msg_to_crypt = "secretamente".to_string();
-        let msg_to_crypt = serde_json::to_string(&blocks.message).expect("Error");
-
-        let crypt_msg = encrypt(shared_key, msg_to_crypt);
-
-        debug!("Encriptada {:?}", encode(&crypt_msg));
-
-        let decrypted_msg = decrypt(shared_key, crypt_msg);
-
-        debug!("Decriptada {}", decrypted_msg);
-
         net::network::request_model_msg("192.168.191.2:6886".to_string());
-
     }
 
 }
+
+
+/*
+
+        
+    let test_pb_key = test_keys();
+
+    let pb_encoded = BASE64_STANDARD.encode(test_pb_key);
+
+    let pb_decoded = BASE64_STANDARD.decode(pb_encoded);
+
+    let client_pb_key = UnparsedPublicKey::new(&X25519, pb_decoded.clone().expect("error"));
+
+    let (pv_key, _pb_key) = generate_own_keys();  
+
+    let shared_key = generate_shared_key(pv_key, client_pb_key);
+
+    //let msg_to_crypt = "secretamente".to_string();
+    let msg_to_crypt = serde_json::to_string(&blocks.message).expect("Error");
+
+    let crypt_msg = encrypt(shared_key, msg_to_crypt);
+
+    debug!("Encriptada {:?}", encode(&crypt_msg));
+
+    let decrypted_msg = decrypt(shared_key, crypt_msg);
+
+    debug!("Decriptada {}", decrypted_msg);
+
+
+*/

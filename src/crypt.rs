@@ -83,7 +83,8 @@ pub mod crypt{
         msg
     }
 
-    pub fn test_keys() -> PublicKey{
+    ///Function to be used just for test purposes
+    pub fn _test_keys() -> PublicKey{
 
         let rng = rand::SystemRandom::new();
         let test_private_key = agreement::EphemeralPrivateKey::generate(&agreement::X25519, &rng).unwrap();
