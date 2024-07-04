@@ -17,11 +17,13 @@ mod crypt;
 use std::io; 
 use std::thread;
 use hex::encode;
+use base64::prelude::*;
 use block::{Block, Node};
 use net::network::{self, VERSION};
 use std::time::{Duration, SystemTime};
 use std::sync::mpsc::{self, Receiver, Sender};
 use tracing::{span, info, error, debug, Level, instrument};
+use ring::agreement::{UnparsedPublicKey, X25519};
 use crypt::crypt::{generate_own_keys, generate_shared_key, encrypt, decrypt, test_keys};
 
 
@@ -255,7 +257,13 @@ fn main() {
         thread::sleep(Duration::from_millis(3000));    
 
         
-        let client_pb_key = test_keys();
+        let test_pb_key = test_keys();
+
+        let pb_encoded = BASE64_STANDARD.encode(test_pb_key);
+
+        let pb_decoded = BASE64_STANDARD.decode(pb_encoded);
+
+        let client_pb_key = UnparsedPublicKey::new(&X25519, pb_decoded.clone().expect("error"));
 
         let (pv_key, _pb_key) = generate_own_keys();  
 
@@ -271,6 +279,8 @@ fn main() {
         let decrypted_msg = decrypt(shared_key, crypt_msg);
 
         debug!("Decriptada {}", decrypted_msg);
+
+        net::network::request_model_msg("192.168.191.2:6886".to_string());
 
     }
 

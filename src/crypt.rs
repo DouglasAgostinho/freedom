@@ -2,7 +2,7 @@ pub mod crypt{
 
     use std::fmt::Error;
 
-    use ring::agreement::{EphemeralPrivateKey, PublicKey};
+    use ring::agreement::{EphemeralPrivateKey, PublicKey, UnparsedPublicKey};
     use ring::{agreement, rand};
     use ring::digest::{self, Digest};
     use aes::Aes256;
@@ -26,7 +26,7 @@ pub mod crypt{
     }
 
     ///Function will get the client public key and return shared secret key
-    pub fn generate_shared_key(private_key: EphemeralPrivateKey, client_public_key: PublicKey) -> Digest{
+    pub fn generate_shared_key(private_key: EphemeralPrivateKey, client_public_key: UnparsedPublicKey<Vec<u8>>) -> Digest{
 
         // Compute shared secrets
         let shared_secret = agreement::agree_ephemeral(

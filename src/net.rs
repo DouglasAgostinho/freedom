@@ -5,8 +5,10 @@ pub mod network{
     use std::io::{self,Read, Write};
     use std::sync::mpsc::Sender;
     use std::net::{TcpListener, TcpStream};
-
-    use tracing::{instrument, info, error};    
+    use base64::prelude::*;
+    use tracing::{instrument, info, error};
+    use ring::agreement::{UnparsedPublicKey, X25519};
+    use crate::crypt::crypt::{generate_own_keys, generate_shared_key, encrypt, decrypt}; 
     //use sha2::digest::consts::False;
     
 
@@ -20,7 +22,6 @@ pub mod network{
 
     //Network buffer
     const NET_BUFFER: [u8; 2048] = [0; 2048];
-
     
     //Constant Address & PORT
     pub const NET_PORT: &str = "6886";
@@ -34,20 +35,13 @@ pub mod network{
     pub const TAIL_CODE: &str = "00000";
     pub const CODE_SIZE: usize = TAIL_CODE.len();
     
-    
     #[instrument]
-    fn handle_message(message: &String, mode: &str, tx: Sender<[String; 3]>) -> bool{
-        //Function to treat incoming / outgoing messages        
-
+    fn handle_message(message: &String, mode: &str, tx: Sender<[String; 3]>, income_stream: TcpStream) -> bool{
+        
+        //Function to treat incoming / outgoing messages
         let msg_len = message.len();
         
-        //let msg_code = &message[ msg_len - CODE_SIZE - VER_SIZE .. msg_len - VER_SIZE];
-        //let client_version = &message[ msg_len - VER_SIZE .. msg_len];
-
         let ser_msg = &message[ .. msg_len - CODE_SIZE - VER_SIZE];
-
-        //println!("Received: MSG => {}, VERSION => {}, CODE => {}", ser_msg, client_version, msg_code);
-
 
         match mode {
 
@@ -62,16 +56,26 @@ pub mod network{
                                    
                     _ => {
                         info!("Received: {}", message); 
+
+                        println!("Message: {}", message); 
+                        println!("ser_msg: {}", ser_msg); 
                         
-                        let mut net_message :Vec<[String; 3]> = serde_json::from_str(ser_msg).expect("Error");
+                        //let msg_code = "00000";
+                        let msg_code = &message[msg_len - CODE_SIZE - VER_SIZE .. msg_len - VER_SIZE];
                         
-                        let msg_code = "00001";
-                        
+                        //println!("Le code => {}", le_code);
+
                         match msg_code {
+
+                            "#####" => {
+
+                                send_model_msg(ser_msg.to_string(), income_stream);
+                            }, 
 
                             "00000" => println!("Message -> {}", msg),
 
                             "00001" => { //Block received
+                                let mut net_message :Vec<[String; 3]> = serde_json::from_str(ser_msg).expect("Error");
 
                                 loop{
 
@@ -91,8 +95,8 @@ pub mod network{
 
                                         //Send net message to main thread
                                         if tx.send(user_msg).is_err() {
-                                            error!("Failed to send message to main thread.");                                    
-                                        }                                        
+                                            error!("Failed to send message to main thread.");
+                                        }
                                     }
                                     else {
                                         break;
@@ -122,6 +126,10 @@ pub mod network{
 
         let income_addr = stream.peer_addr().expect("Error");
         
+        //let income_ip = income_addr.ip(); 
+
+        
+        
         info!("Incoming connection from {}", income_addr);
         let mut buf = NET_BUFFER;
         
@@ -134,8 +142,9 @@ pub mod network{
             let received = String::from_utf8_lossy(&buf[..bytes_read]);
         
             let snd = tx.clone();
+            let income_stream: TcpStream = stream.try_clone().expect("error");
 
-            if handle_message(&received.to_string(), "receive", snd) {
+            if handle_message(&received.to_string(), "receive", snd, income_stream) {
 
                 //Repply to client that server is ready to receive stream                                     
                 stream.write_all("ready_to_receive".as_bytes()).expect("error");
@@ -218,14 +227,15 @@ pub mod network{
 
 
     
-    fn client(message: String, address: &str, mode: &str)-> io::Result<()> {
+    fn client(message: String, address: &str, mode: &str)-> io::Result<String> {
         match mode {
             "simple" => {
+                println!("done {}", message);
                 // Connect to the server
                 let mut stream = TcpStream::connect(address)?;
                 // Send data to the server
                 stream.write_all(message.as_bytes())?;
-                Ok(())
+                Ok(EMPTY_STRING)
             },
             "serialized" => {
                 // Connect to the server
@@ -233,15 +243,120 @@ pub mod network{
 
                 let serialized = serde_json::to_string(&message)?;
                 stream.write_all(serialized.as_bytes())?;
-                Ok(())
+                Ok(EMPTY_STRING)
             },
             "test" => {
                 // Connect to the server
                 let mut stream = TcpStream::connect(address)?;
                 stream.write_all(message.as_bytes())?;
-                Ok(())
+                Ok(EMPTY_STRING)
             },
-            _ => Ok(()),
+            "model_msg" => {
+                // Connect to the server
+                let mut stream = TcpStream::connect(address)?;
+                // Send data to the server
+                stream.write_all(message.as_bytes())?;
+
+                stream.flush()?;
+
+                let mut buf = NET_BUFFER;
+                let bytes_read = stream.read(&mut buf).expect("Error");
+                
+                let received = if bytes_read != 0 {
+                    String::from_utf8_lossy(&buf[..bytes_read]).to_string()
+                }
+                else {EMPTY_STRING};           
+
+                println!("received client {}", received);
+            
+                Ok(received)
+                
+            },
+            _ => Ok(EMPTY_STRING),
         }
     }
+
+    pub fn request_model_msg(dest_ip: String, ){
+        
+        //Generate own Ephemeral Keys
+        let (pv_key, pb_key) = generate_own_keys();
+
+        //Convert PBkey to string
+        //let s_pb_key: String = encode(&pb_key);
+        let mut s_pb_key = BASE64_STANDARD.encode(pb_key);
+
+        s_pb_key.push_str("#####");    //00000 - code for life beat message (check message code table)
+        s_pb_key.push_str(VERSION);
+
+
+        //Send request for model message and Public Key
+        let ser_crypto: String = client(s_pb_key, &dest_ip, "model_msg").expect("error");
+
+        println!(" rec {}", ser_crypto);
+
+        let received_crypto :(String, Vec<u8>) = serde_json::from_str(&ser_crypto).expect("Error");
+
+        //let rcv_key = received_crypto[0];
+
+        //let bytes_pb_key = decode(ser_crypto).expect("error");
+        let cl_pb_key = BASE64_STANDARD.decode(received_crypto.0).expect("error");
+
+        // Create an `UnparsedPublicKey` from the bytes
+        //let cl_pub_key = UnparsedPublicKey::new(&ED25519, public_key_bytes);
+        //let cl_pub_key = UnparsedPublicKey::new(&X25519, bytes_pb_key.as_ref());
+        let cl_pub_key = UnparsedPublicKey::new(&X25519, cl_pb_key.clone());
+
+        let shared_key = generate_shared_key(pv_key, cl_pub_key);
+
+        let msg = decrypt(shared_key, received_crypto.1);
+
+        //let reply = send_to_model(msg);
+        println!("Decrypted {}", msg);
+
+        //let crypt_reply = encrypt(shared_key, msg);
+        //println!(" Encrypted {:?}", crypt_reply);
+
+        //client(reply, &dest_ip, "simple");
+
+    }
+
+    pub fn send_model_msg(encoded_key: String, mut income_stream: TcpStream){
+
+        //let mut address = String::from(income_address.to_string());
+
+        //address.push_str(":6886");
+
+        //println!("address {}", address);
+
+        let decoded_pb_key = BASE64_STANDARD.decode(encoded_key).expect("error");
+
+        let server_pb_key = UnparsedPublicKey::new(&X25519, decoded_pb_key.clone());
+
+        //Generate own Ephemeral Keys
+        let (pv_key, pb_key) = generate_own_keys();
+
+        //Generate shared secret
+        let shared_key = generate_shared_key(pv_key, server_pb_key);
+
+        let crypt_msg = encrypt(shared_key, "le secret".to_string());
+
+        let encoded_my_pb = BASE64_STANDARD.encode(pb_key);
+
+        let crypt_tuple: (String, Vec<u8>)= (encoded_my_pb, crypt_msg);
+
+        let ser_crypt_msg = serde_json::to_string(&crypt_tuple).expect("error");
+
+        //ser_crypt_msg.push_str(&encoded_my_pb);
+
+        //ser_crypt_msg.push_str("00001");    //00000 - code for life beat message (check message code table)
+        //ser_crypt_msg.push_str(VERSION);
+
+        //let _ = client(ser_crypt_msg, &address, "simple");
+
+        income_stream.write_all(ser_crypt_msg.as_bytes()).expect("error");
+
+        
+
+    }
+    
 }
