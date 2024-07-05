@@ -184,7 +184,7 @@ fn main() {
                     let mut message = match serde_json::to_string(&blocks.message){
                         Ok(msg) => msg,
                         Err(e) => {
-                            error!("Error while serializing message {}", e);
+                            error!("Error while serializing Block propagation message {}", e);
                             EMPTY_STRING
                         },
                     };
@@ -210,7 +210,7 @@ fn main() {
         loop {
 
             if net_msg[0] != EMPTY_STRING {
-                
+
                 if !blocks.message.contains(&net_msg){
 
                     //Call insert function to format and store in a block section

@@ -9,8 +9,6 @@ pub mod network{
     use tracing::{instrument, info, error};
     use ring::agreement::{UnparsedPublicKey, X25519};
     use crate::crypt::crypt::{generate_own_keys, generate_shared_key, encrypt, decrypt}; 
-    //use sha2::digest::consts::False;
-    
 
     //----------Constants----------//
 
@@ -25,7 +23,6 @@ pub mod network{
     
     //Constant Address & PORT
     pub const NET_PORT: &str = "6886";
-    //pub const PORT_SIZE: usize = NET_PORT.len();
 
     //Software version
     pub const VERSION: &str = "000_01";
@@ -56,15 +53,9 @@ pub mod network{
                                    
                     _ => {
                         info!("Received: {}", message); 
-
-                        println!("Message: {}", message); 
-                        println!("ser_msg: {}", ser_msg); 
-                        
-                        //let msg_code = "00000";
+        
                         let msg_code = &message[msg_len - CODE_SIZE - VER_SIZE .. msg_len - VER_SIZE];
-                        
-                        //println!("Le code => {}", le_code);
-
+        
                         match msg_code {
 
                             "#####" => {
@@ -75,11 +66,17 @@ pub mod network{
                             "00000" => println!("Message -> {}", msg),
 
                             "00001" => { //Block received
-                                let mut net_message :Vec<[String; 3]> = serde_json::from_str(ser_msg).expect("Error");
+                                let mut net_message :Vec<[String; 3]> = match serde_json::from_str(ser_msg){
+
+                                    Ok(msg) => msg,
+                                    Err(e) => {
+                                        error!("Error while deserializing Net Message => {}", e);
+                                        Vec::from([[EMPTY_STRING; 3]])
+                                    }
+                                };
 
                                 loop{
 
-                                    //let mut user_msg: [String; 3] = [EMPTY_STRING; 3];
                                     let user_msg: [String; 3];
 
                                     if let Some(_) =  net_message.get(1){
@@ -104,7 +101,6 @@ pub mod network{
                                 }                                
                             }
 
-                            "00002" => println!("Received message => {}", message),
                             _ => (),                            
                         }                                                          
                         false //to_do Will return decrypted message
@@ -124,30 +120,56 @@ pub mod network{
     #[instrument]
     fn handle_client(mut stream: TcpStream, tx: Sender<[String; 3]>) {        
 
-        let income_addr = stream.peer_addr().expect("Error");
-        
-        //let income_ip = income_addr.ip(); 
-
-        
+        let income_addr = match stream.peer_addr(){
+            Ok(addr) => addr,
+            Err(e) => {
+                error!("Failed to retrieve incoming connectiong address => {}", e);
+                return 
+                //std::net::SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 6886)
+            }
+        };
         
         info!("Incoming connection from {}", income_addr);
         let mut buf = NET_BUFFER;
         
-
         loop {
                         
-            let bytes_read = stream.read(&mut buf).expect("Error");            
-            if bytes_read == 0 {break}
+            let bytes_read = match stream.read(&mut buf){
+                Ok(0) => {
+                    info!("Connection closed by server");
+                    break;
+                },
+                Ok(b) => b,
+                Err(e) => {
+                    error!("Error while reading stream => {}", e);
+                    break;
+                }
+            };
+
+            //if bytes_read == 0 {break}
             
             let received = String::from_utf8_lossy(&buf[..bytes_read]);
         
             let snd = tx.clone();
-            let income_stream: TcpStream = stream.try_clone().expect("error");
+            
+            let income_stream: TcpStream = match stream.try_clone(){
+                Ok(s) => s,
+                Err(e) => {
+                    error!("Error while trying to copy stream => {}", e);
+                    break
+                }
+            };
 
             if handle_message(&received.to_string(), "receive", snd, income_stream) {
 
                 //Repply to client that server is ready to receive stream                                     
-                stream.write_all("ready_to_receive".as_bytes()).expect("error");
+                match stream.write_all("ready_to_receive".as_bytes()){
+                    Ok(s) => s,
+                    Err(e) => {
+                        error!("Error while trying to send network message => {}", e);
+                        return
+                    }
+                }
 
                 //Create buffer to receive data
                 let mut buffer = NET_BUFFER;                    
@@ -162,7 +184,14 @@ pub mod network{
                         Ok(n) => {
                             let msg = String::from_utf8_lossy(&buffer[0..n]);
                             print!("{}", msg);      //Uses print! to not insert /n after each received data                                                            
-                            io::stdout().flush().expect("error");  // Ensure immediate output
+                            // Ensure immediate output
+                            match io::stdout().flush(){
+                                Ok(n) => n,
+                                Err(e) => {
+                                    error!("Error while flushing Std output => {}", e);
+                                    break
+                                }
+                            }  
                         },
                         Err(e) => {
                             error!("Failed to receive message: {}", e);
@@ -186,8 +215,14 @@ pub mod network{
         addr.push_str(NET_PORT);
 
         //Set system to listen
-        let listener = TcpListener::bind(addr).expect("Could not bind");
-        //println!("Server initialized...");
+        let listener = match TcpListener::bind(addr){
+            Ok(l) => l,
+            Err(e) => {
+                error!("Error while binding address => {}", e);
+                return
+            }
+        };
+
         info!("Server initialized...");
         
         //Create a thread for each received connection
@@ -197,7 +232,6 @@ pub mod network{
                 Err(e) => error!("Error found 0 {e}"),
                 Ok(stream) => {
                     thread::spawn(move || {
-        
                         handle_client(stream, snd);
                     });
                 }
@@ -260,7 +294,13 @@ pub mod network{
                 stream.flush()?;
 
                 let mut buf = NET_BUFFER;
-                let bytes_read = stream.read(&mut buf).expect("Error");
+                let bytes_read = match stream.read(&mut buf){
+                    Ok(b) => b,
+                    Err(e) => {
+                        error!("Error while reading stream => {}", e);
+                        return Ok(EMPTY_STRING)
+                    }
+                };
                 
                 let received = if bytes_read != 0 {
                     String::from_utf8_lossy(&buf[..bytes_read]).to_string()
@@ -338,7 +378,7 @@ pub mod network{
         //Generate shared secret
         let shared_key = generate_shared_key(pv_key, server_pb_key);
 
-        let crypt_msg = encrypt(shared_key, "le secret".to_string());
+        let crypt_msg = encrypt(shared_key, "LapTop secret".to_string());
 
         let encoded_my_pb = BASE64_STANDARD.encode(pb_key);
 
