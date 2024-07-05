@@ -12,16 +12,11 @@ mod crypt;
 
 use std::io; 
 use std::thread;
-//use hex::encode;
-//use base64::prelude::*;
 use block::{Block, Node};
 use net::network::{self, VERSION};
 use std::time::{Duration, SystemTime};
 use std::sync::mpsc::{self, Receiver, Sender};
 use tracing::{span, info, error, Level, instrument};
-//use ring::agreement::{UnparsedPublicKey, X25519};
-//use crypt::crypt::{generate_own_keys, generate_shared_key, encrypt, decrypt, test_keys};
-
 
 //Constant to use in String based variables
 const EMPTY_STRING: String = String::new();
@@ -252,33 +247,3 @@ fn main() {
     }
 
 }
-
-
-/*
-
-        
-    let test_pb_key = test_keys();
-
-    let pb_encoded = BASE64_STANDARD.encode(test_pb_key);
-
-    let pb_decoded = BASE64_STANDARD.decode(pb_encoded);
-
-    let client_pb_key = UnparsedPublicKey::new(&X25519, pb_decoded.clone().expect("error"));
-
-    let (pv_key, _pb_key) = generate_own_keys();  
-
-    let shared_key = generate_shared_key(pv_key, client_pb_key);
-
-    //let msg_to_crypt = "secretamente".to_string();
-    let msg_to_crypt = serde_json::to_string(&blocks.message).expect("Error");
-
-    let crypt_msg = encrypt(shared_key, msg_to_crypt);
-
-    debug!("Encriptada {:?}", encode(&crypt_msg));
-
-    let decrypted_msg = decrypt(shared_key, crypt_msg);
-
-    debug!("Decriptada {}", decrypted_msg);
-
-
-*/
