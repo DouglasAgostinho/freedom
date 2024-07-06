@@ -1,6 +1,6 @@
 /*
     ---------- Message code table version - 000.01 ----------
-    ##### - encryption handshake
+    ####1 - encryption handshake
     00000 - life beat message that broadcast listening port.
     00001 - Block propagation
 */
@@ -63,10 +63,14 @@ pub mod network{
 
                         match msg_code {
 
-                            "#####" => {
+                            "####1" => {
 
                                 send_model_msg(ser_msg.to_string(), income_stream);
                             },
+
+                            "####2" => {
+
+                            }
 
                             "00000" => println!("Message -> {}", msg),
 
@@ -267,7 +271,7 @@ pub mod network{
     fn client(message: String, address: &str, mode: &str)-> io::Result<String> {
         match mode {
             "simple" => {
-                println!("done {}", message);
+                //println!("done {}", message);
                 // Connect to the server
                 let mut stream = TcpStream::connect(address)?;
                 // Send data to the server
@@ -328,7 +332,7 @@ pub mod network{
         //Convert Public key to string
         let mut s_pb_key = BASE64_STANDARD.encode(pb_key);
 
-        s_pb_key.push_str("#####");    //##### - code for encryption handshake
+        s_pb_key.push_str("####1");    //####1 - code for encryption handshake
         s_pb_key.push_str(VERSION);    //Insert software version in message tail
 
 
@@ -359,6 +363,10 @@ pub mod network{
         let msg = decrypt(shared_key, received_crypto.1);
 
         println!("Decrypted {}", msg);
+
+        //enviar msg para modelo
+        //esperar resposta como stream
+        //retornar resposta encriptada
     }
 
     pub fn send_model_msg(encoded_key: String, mut income_stream: TcpStream){
@@ -392,8 +400,38 @@ pub mod network{
     }
 
     ///Function to receive or send model repply
-    pub fn _process_model_msg(){        
+    #[instrument]
+    pub fn _process_model_msg(mut income_stream: TcpStream){
+
+        //Create buffer to receive data
+        let mut buffer = NET_BUFFER;
+
+        // Receive data continuously from the server
+        loop {
+            match income_stream.read(&mut buffer) {
+                Ok(0) => {
+                    info!("Connection closed by server");
+                    break;
+                },
+                Ok(n) => {
+                    let msg = String::from_utf8_lossy(&buffer[0..n]);
+                    print!("{}", msg);      //Uses print! to not insert /n after each received data
+                    // Ensure immediate output
+                    match io::stdout().flush(){
+                        Ok(n) => n,
+                        Err(e) => {
+                            error!("Error while flushing Std output => {}", e);
+                            break
+                        }
+                    }  
+                },
+                Err(e) => {
+                    error!("Failed to receive message: {}", e);
+                    break;
+                }
+            }
+        }
 
     }
-    
+
 }

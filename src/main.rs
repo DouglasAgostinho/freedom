@@ -59,17 +59,11 @@ fn local_users(tx: Sender<String>){
         let mut user_input = EMPTY_STRING;
 
         //Get user input
-        info!("Please enter the message");
+        println!("Please enter the message");
         match io::stdin().read_line(&mut user_input) {
             Ok(_) => (),
             Err(e) => error!("Error found while getting user input => {}", e),
         }
-
-        //Send user input to main thread
-        //if tx.send(user_input).is_err() {
-            //error!("Failed to send input to main thread.");
-            //break;
-        //}
 
         match tx.send(user_input){
             Ok(t) => t,
@@ -238,6 +232,9 @@ fn main() {
                 break;
             }
         }
+
+        //Clean std out
+        //println!("\x1B[2J\x1B[1;1H");
 
         println!(" Blocks => {:?}", blocks.message);
         blocks.message = get_msg_from_blocks(blocks.message, "remove".to_string());
