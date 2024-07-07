@@ -7,7 +7,7 @@
 pub mod network{
 
     use std::thread;
-    use std::io::{self,Read, Write};
+    use std::io::{self, Read, Write};
     use std::sync::mpsc::Sender;
     use std::net::{TcpListener, TcpStream};
     use base64::prelude::*;
@@ -65,7 +65,13 @@ pub mod network{
 
                             "####1" => {
 
-                                send_model_msg(ser_msg.to_string(), income_stream);
+                                let _ = match send_model_msg(ser_msg.to_string(), income_stream)  {
+                                    Ok(n) => n,
+                                    Err(e) =>{
+                                        error!("Error found while requesting model message => {}", e);
+                                        EMPTY_STRING
+                                    }
+                                };
                             },
 
                             "####2" => {
@@ -322,9 +328,43 @@ pub mod network{
         }
     }
 
+    fn client_connect(dest_addr: String) -> io::Result<TcpStream>{
+        // Connect to the server
+        let stream = TcpStream::connect(dest_addr)?;
+        Ok(stream)
+    }
+
+    fn client_read(mut stream: TcpStream) -> (String, TcpStream){
+        
+        let mut buf = NET_BUFFER;
+        let bytes_read = match stream.read(&mut buf){
+            Ok(b) => b,
+            Err(e) => {
+                error!("Error while reading stream => {}", e);
+                return (EMPTY_STRING, stream)
+            }
+        };
+
+        let received = if bytes_read != 0 {
+            String::from_utf8_lossy(&buf[..bytes_read]).to_string()
+        }
+        else {"!!!EMPTY_STRING!!!".to_string()};
+
+        (received, stream)
+    }
+
+    fn client_write(mut stream: TcpStream, message: String) -> io::Result<TcpStream>{
+
+        stream.write_all(message.as_bytes())?;
+
+        Ok(stream)
+
+    }
+
     /// Function responsible to perform message exchange securely by
     /// secure assynchronous key exchange and message encryption
-    pub fn request_model_msg(dest_ip: String){
+    #[instrument]
+    pub fn request_model_msg(dest_ip: String) -> io::Result<String> {
         
         //Generate own Ephemeral Keys
         let (pv_key, pb_key) = generate_own_keys();
@@ -335,15 +375,20 @@ pub mod network{
         s_pb_key.push_str("####1");    //####1 - code for encryption handshake
         s_pb_key.push_str(VERSION);    //Insert software version in message tail
 
+        let client_stream = client_connect(dest_ip)?;
+
+        let client_stream = client_write(client_stream, s_pb_key)?;
+
+        let (ser_crypto, client_stream) = client_read(client_stream);
 
         //Send request for model message and Public Key
-        let ser_crypto: String = match client(s_pb_key, &dest_ip, "model_msg"){
-            Ok(s) => s,
-            Err(e) => {
-                error!("Error while requesting client message => {}", e);
-                return
-            }
-        };
+        //let ser_crypto: String = match client(s_pb_key, &dest_ip, "model_msg"){
+            //Ok(s) => s,
+            //Err(e) => {
+                //error!("Error while requesting client message => {}", e);
+                //EMPTY_STRING
+            //}
+        //};
 
         println!(" rec {}", ser_crypto);
 
@@ -367,55 +412,48 @@ pub mod network{
         //enviar msg para modelo
         //esperar resposta como stream
         //retornar resposta encriptada
-    }
 
-    pub fn send_model_msg(encoded_key: String, mut income_stream: TcpStream){
+        let model_address = "192.168.191.1:8687".to_string();
 
-        //Decoding received public key
-        let decoded_pb_key = BASE64_STANDARD.decode(encoded_key).expect("error");
+        // Connect to the model
+        let model_stream = client_connect(model_address)?;
 
-        // Create an `UnparsedPublicKey` from the bytes
-        let server_pb_key = UnparsedPublicKey::new(&X25519, decoded_pb_key.clone());
+        // Send data to the server
+        let model_stream = client_write(model_stream, msg)?;
+        //model_stream.write_all(msg.as_bytes())?;
 
-        //Generate own Ephemeral Keys
-        let (pv_key, pb_key) = generate_own_keys();
+        let mut msg_loop = EMPTY_STRING;
 
-        //Generate shared synchronous key
-        let shared_key = generate_shared_key(pv_key, server_pb_key);
+        while msg_loop != "!!!EMPTY_STRING!!!"{
 
-        //Encrypt message
-        let crypt_msg = encrypt(shared_key, "LapTop secret".to_string());
+            let (model_msg, _) = client_read(model_stream.try_clone()?);
 
-        //Encoding own public key
-        let encoded_my_pb = BASE64_STANDARD.encode(pb_key);
+            msg_loop = model_msg.clone();
 
-        //Formating message tuple (encrypted message, client public key)
-        let crypt_tuple: (String, Vec<u8>)= (encoded_my_pb, crypt_msg);
+            let crypt_msg = encrypt(shared_key, model_msg);
 
-        //Serialize formated message
-        let ser_crypt_msg = serde_json::to_string(&crypt_tuple).expect("error");
+            let crypt_ser = serde_json::to_string(&crypt_msg)?;
 
-        //Repply to client serialized message
-        income_stream.write_all(ser_crypt_msg.as_bytes()).expect("error");
-    }
+            let _ = client_write(client_stream.try_clone()?, crypt_ser);
 
-    ///Function to receive or send model repply
-    #[instrument]
-    pub fn _process_model_msg(mut income_stream: TcpStream){
+            //println!("SND -> msg => {}", msg_loop);
+        }
 
         //Create buffer to receive data
-        let mut buffer = NET_BUFFER;
+        //let mut buffer = NET_BUFFER;
 
-        // Receive data continuously from the server
+        // Receive data continuously from the model and send encrypted
+        /*
         loop {
-            match income_stream.read(&mut buffer) {
+            match model_stream.read(&mut buffer) {
                 Ok(0) => {
                     info!("Connection closed by server");
-                    break;
+                    break
                 },
                 Ok(n) => {
-                    let msg = String::from_utf8_lossy(&buffer[0..n]);
-                    print!("{}", msg);      //Uses print! to not insert /n after each received data
+                    let reply = String::from_utf8_lossy(&buffer[0..n]);
+                    //print!("{}", msg);      //Uses print! to not insert /n after each received data
+
                     // Ensure immediate output
                     match io::stdout().flush(){
                         Ok(n) => n,
@@ -430,7 +468,81 @@ pub mod network{
                     break;
                 }
             }
+        }*/
+
+        Ok(EMPTY_STRING)
+    }
+
+    #[instrument]
+    pub fn send_model_msg(encoded_key: String, mut income_stream: TcpStream) -> io::Result<String> {
+
+        //Decoding received public key
+        let decoded_pb_key = BASE64_STANDARD.decode(encoded_key).expect("error");
+
+        // Create an `UnparsedPublicKey` from the bytes
+        let server_pb_key = UnparsedPublicKey::new(&X25519, decoded_pb_key.clone());
+
+        //Generate own Ephemeral Keys
+        let (pv_key, pb_key) = generate_own_keys();
+
+        //Generate shared synchronous key
+        let shared_key = generate_shared_key(pv_key, server_pb_key);
+
+        //Encrypt message
+        let crypt_msg = encrypt(shared_key, "Who is Andrej Kaparthy?".to_string());
+
+        //Encoding own public key
+        let encoded_my_pb = BASE64_STANDARD.encode(pb_key);
+
+        //Formating message tuple (encrypted message, client public key)
+        let crypt_tuple: (String, Vec<u8>)= (encoded_my_pb, crypt_msg);
+
+        //Serialize formated message
+        let ser_crypt_msg = serde_json::to_string(&crypt_tuple).expect("error");
+
+        //Repply to client serialized message
+        income_stream.write_all(ser_crypt_msg.as_bytes()).expect("error");
+
+        //let mut buffer = NET_BUFFER;
+
+        let mut msg_loop = EMPTY_STRING;
+
+        while msg_loop != "!!!EMPTY_STRING!!!"{
+
+            let (ser_crypt_msg, _) = client_read(income_stream.try_clone()?);
+
+            let crypt_msg: Vec<u8> = serde_json::from_str(&ser_crypt_msg).expect("Error");
+
+            let model_msg = decrypt(shared_key, crypt_msg);
+
+            msg_loop = model_msg.clone();
+
+            //println!("RCV -> msg => {}", msg_loop);
+
+            print!("{}", model_msg);      //Uses print! to not insert /n after each received data
+
+            // Ensure immediate output
+            match io::stdout().flush(){
+                Ok(n) => n,
+                Err(e) => {
+                    error!("Error while flushing Std output => {}", e);
+                    break
+                }
+            }
         }
+
+        Ok(EMPTY_STRING)
+    }
+
+    ///Function to receive or send model repply
+    #[instrument]
+    pub fn _process_model_msg(message: String)  {
+
+        
+
+
+        
+        
 
     }
 

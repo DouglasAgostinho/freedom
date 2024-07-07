@@ -240,7 +240,13 @@ fn main() {
         blocks.message = get_msg_from_blocks(blocks.message, "remove".to_string());
         thread::sleep(Duration::from_millis(3000));
 
-        net::network::request_model_msg("192.168.191.2:6886".to_string());
+        let _ = match net::network::request_model_msg("192.168.191.2:6886".to_string())  {
+            Ok(n) => n,
+            Err(e) =>{
+                error!("Error found while requesting model message => {}", e);
+                EMPTY_STRING
+            }
+        };
     }
 
 }
