@@ -1,3 +1,0 @@
-[2m2024-07-05T14:41:32.726104Z[0m [32m INFO[0m [1mMain[0m[2m:[0m [2mfredoom[0m[2m:[0m Tempo => 36.148µs
-[2m2024-07-05T14:41:32.726205Z[0m [32m INFO[0m [1mLocal menu[0m[2m:[0m [2mfredoom[0m[2m:[0m Please enter the message
-[2m2024-07-05T14:41:32.726284Z[0m [32m INFO[0m [1mMain[0m[2m:[0m[1mnet_init[0m[1m{[0m[3mtx[0m[2m=[0mSender { .. }[1m}[0m[2m:[0m [2mfredoom::net::network[0m[2m:[0m Server initialized...

@@ -27,6 +27,90 @@ const MINUTE: Duration = Duration::from_secs(10);
 //Logging path constant
 const LOG_PATH: &str = "./logs";
 
+#[instrument]
+fn get_input() -> String {
+    
+    let mut user_input = EMPTY_STRING;
+
+    //Get user input
+    //println!("Please enter the message");
+    match io::stdin().read_line(&mut user_input) {
+        Ok(_) => (),
+        Err(e) => error!("Error found while getting user input => {}", e),
+    }
+    user_input.trim().to_string()
+}
+
+#[instrument]
+fn prog_control() -> (u8, String) {
+
+    //Clean std out
+    //println!("\x1B[2J\x1B[1;1H");
+
+    println!("-----------------------------");
+    println!(" !!! Welcome to fredoom !!!");
+    println!("-----------------------------");
+    println!("Please select an option below.");
+    println!("1 - Select model.");
+    println!("2 - Insert message.");
+    println!("3 - Check message table");
+
+    //Variable to receive user input
+    let user_input = get_input();
+
+    let u_sel: u8;
+
+    let tx_send = match &user_input[..] {
+
+        "1" => {
+
+            u_sel = 1;
+            
+            println!("\x1B[2J\x1B[1;1H");
+
+            println!("Please select an option below.");            
+            println!("1 - llama 3.");
+            println!("2 - Phi 3.");
+            println!("3 - Mistral");
+
+            let user_input = get_input();
+
+            let sel = match &user_input[..] {
+
+                "1" => "llama 3",
+                "2" => "Phi 3",
+                "3" => "Mistral",
+                _ => "",                
+            };   
+
+            sel.to_string()
+        },
+
+        "2" => {
+            u_sel = 2;
+
+            println!("Please insert your message");
+            let user_input = get_input();
+            user_input
+        }
+
+        "3" => {
+            u_sel = 3;
+            println!("\x1B[2J\x1B[1;1H");
+            EMPTY_STRING
+        }
+
+        _ => {
+            u_sel = 0;
+            EMPTY_STRING
+        },
+    };
+
+    (u_sel, tx_send)
+
+    
+}
+
 
 ///Receive an item from a Vector of vector(String) if match the NODE Address
 fn get_msg_from_blocks(mut block: Vec<[String; 3]>, addr: String) -> Vec<[String; 3]>{
@@ -55,22 +139,27 @@ fn get_msg_from_blocks(mut block: Vec<[String; 3]>, addr: String) -> Vec<[String
 fn local_users(tx: Sender<String>){
 
     loop {
-        //Variable to receive user input
-        let mut user_input = EMPTY_STRING;
 
-        //Get user input
-        println!("Please enter the message");
-        match io::stdin().read_line(&mut user_input) {
-            Ok(_) => (),
-            Err(e) => error!("Error found while getting user input => {}", e),
+        let (action_menu, mut msg_menu) = prog_control(); 
+        
+        if action_menu == 0 {
+
+            println!("Please select a valid option !");
+            
         }
+        else {
 
-        match tx.send(user_input){
-            Ok(t) => t,
-            Err(e) => {
-                error!("Failed to send input to main thread => {}", e);
-                break
+            msg_menu.push_str(&action_menu.to_string());
+            println!(" MSG => {}", msg_menu);
+
+            match tx.send(msg_menu){
+                Ok(t) => t,
+                Err(e) => {
+                    error!("Failed to send input to main thread => {}", e);
+                    break
+                }
             }
+            
         }
     }  
 }
@@ -130,7 +219,8 @@ fn main() {
 
 
     //Initial greetins (todo main menu)----------------------------------------------------------------------------------
-    println!("Welcome to FREDOOM !!!");
+    //println!("Welcome to FREDOOM !!!");
+    println!("\x1B[2J\x1B[1;1H");
 
     //Initiate Thread message channel Tx / Rx 
     let (input_message, message_receiver) = mpsc::channel();
@@ -222,11 +312,51 @@ fn main() {
             }
 
             if user_msg != EMPTY_STRING {
-                //Organize data to fit in the message format [current time, address, message text]
-                let message: [String; 3] = [my_node.get_time_ns(), my_node.address.clone(), String::from(user_msg.trim())];
 
-                //Call insert function to format and store in a block section
-                blocks.insert(message.clone());
+                let msg_len = user_msg.len();
+                let code = &user_msg[msg_len -1 .. msg_len];  
+                
+                match  code {
+
+                    "1" => {
+
+                        let selected_model = user_msg[ .. msg_len -1].to_string();
+
+                        //Organize data to fit in the message format [current time, address, message text]
+                        let message: [String; 3] = [my_node.get_time_ns(), my_node.address.clone(), String::from(selected_model.trim())];
+
+                        //Call insert function to format and store in a block section
+                        blocks.insert(message.clone());
+
+                    },
+
+                    "2" => {
+                        //let _message_to_model = user_msg[ .. msg_len -1].to_string();
+
+
+                        //For tests purpose , will be changed to reply when requested a message
+
+                        let _ = match net::network::request_model_msg("192.168.191.2:6886".to_string())  {
+                            Ok(n) => n,
+                            Err(e) =>{
+                                error!("Error found while requesting model message => {}", e);
+                                EMPTY_STRING
+                            }
+                        };
+                    },
+
+                    "3" => {
+
+                        println!("-----------------------------");
+                        println!("  !!!  Updated blocks  !!!");
+                        println!("-----------------------------");
+                        
+                        println!(" Blocks => {:?}", blocks.message);
+                    }
+
+                    _ => (),                    
+                }
+                
             }
             else {
                 break;
@@ -236,10 +366,10 @@ fn main() {
         //Clean std out
         //println!("\x1B[2J\x1B[1;1H");
 
-        println!(" Blocks => {:?}", blocks.message);
+        
         blocks.message = get_msg_from_blocks(blocks.message, "remove".to_string());
-        thread::sleep(Duration::from_millis(3000));
-
+        //thread::sleep(Duration::from_millis(3000));
+/*
         let _ = match net::network::request_model_msg("192.168.191.2:6886".to_string())  {
             Ok(n) => n,
             Err(e) =>{
@@ -247,6 +377,7 @@ fn main() {
                 EMPTY_STRING
             }
         };
+ */
     }
 
 }

@@ -536,12 +536,7 @@ pub mod network{
 
     ///Function to receive or send model repply
     #[instrument]
-    pub fn _process_model_msg(message: String)  {
-
-        
-
-
-        
+    pub fn _process_model_msg(message: String)  {       
         
 
     }
