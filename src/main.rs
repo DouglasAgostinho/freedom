@@ -113,11 +113,9 @@ fn prog_control() -> (u8, (String, String)) {
     };
 
     (u_sel, model_and_message)
-
-    
 }
 
-
+/*
 ///Receive an item from a Vector of vector(String) if match the NODE Address
 fn get_msg_from_blocks(mut block: Vec<[String; 3]>, addr: String) -> Vec<[String; 3]>{
 
@@ -126,7 +124,6 @@ fn get_msg_from_blocks(mut block: Vec<[String; 3]>, addr: String) -> Vec<[String
     
     //Loop through Block messages to find desired value
     for (num, val) in block.iter().enumerate(){
-
         if val[2] == addr {
             to_remove.push(num);
         }
@@ -140,6 +137,7 @@ fn get_msg_from_blocks(mut block: Vec<[String; 3]>, addr: String) -> Vec<[String
     //Return block without removed messages
     block
 }
+*/
 
 #[instrument]
 fn local_users(tx: Sender<String>){
@@ -151,14 +149,10 @@ fn local_users(tx: Sender<String>){
         let mut ser_menu = serde_json::to_string(&model_and_message).expect("error");
 
         if action_menu == 0 {
-
             println!("Please select a valid option !");
-            
         }
         else {
-
             ser_menu.push_str(&action_menu.to_string());
-            println!(" MSG => {}", ser_menu);
 
             match tx.send(ser_menu){
                 Ok(t) => t,
@@ -166,11 +160,11 @@ fn local_users(tx: Sender<String>){
                     error!("Failed to send input to main thread => {}", e);
                     break
                 }
-            }
-            
+            }            
         }
     }  
 }
+
 
 #[instrument] //Tracing auto span generation
 fn handle_thread_msg(message_receiver: &Receiver<String>) -> String{
@@ -418,7 +412,7 @@ fn main() {
                     "4" => {
 
                         let model = "llama 3".to_string();
-                        thread::spawn( move || net::network::request_model_msg("192.168.191.3:6886".to_string(), model));
+                        thread::spawn( move || net::network::request_model_msg("192.168.191.2:6886".to_string(), model));
 
                     }
 
@@ -444,7 +438,7 @@ fn main() {
             }
         } 
         
-        blocks.message = get_msg_from_blocks(blocks.message, "remove".to_string());
+        //blocks.message = get_msg_from_blocks(blocks.message, "remove".to_string());
         thread::sleep(Duration::from_millis(1));
     }
 
