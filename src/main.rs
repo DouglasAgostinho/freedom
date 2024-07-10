@@ -10,8 +10,10 @@ mod block;
 mod crypt;
 
 
-use std::io; 
+//use std::io; 
+use std::io::{self, Write};
 use std::thread;
+use std::net::TcpStream;
 use block::{Block, Node};
 use net::network::{self, VERSION};
 use std::time::{Duration, SystemTime};
@@ -42,7 +44,7 @@ fn get_input() -> String {
 }
 
 #[instrument]
-fn prog_control() -> (u8, String) {
+fn prog_control() -> (u8, (String, String)) {
 
     //Clean std out
     //println!("\x1B[2J\x1B[1;1H");
@@ -52,7 +54,7 @@ fn prog_control() -> (u8, String) {
     println!("-----------------------------");
     println!("Please select an option below.");
     println!("1 - Select model.");
-    println!("2 - Insert message.");
+    println!("2 - Check messages List.");
     println!("3 - Check message table");
 
     //Variable to receive user input
@@ -66,7 +68,7 @@ fn prog_control() -> (u8, String) {
 
             u_sel = 1;
             
-            println!("\x1B[2J\x1B[1;1H");
+            //println!("\x1B[2J\x1B[1;1H");
 
             println!("Please select an option below.");            
             println!("1 - llama 3.");
@@ -83,26 +85,28 @@ fn prog_control() -> (u8, String) {
                 _ => "",                
             };   
 
-            sel.to_string()
+            println!("Now, please insert your message");
+            let user_input = get_input();
+            
+
+            (sel.to_string(), user_input)
         },
 
         "2" => {
             u_sel = 2;
-
-            println!("Please insert your message");
-            let user_input = get_input();
-            user_input
+            //println!("\x1B[2J\x1B[1;1H");
+            (EMPTY_STRING, EMPTY_STRING)
         }
 
         "3" => {
             u_sel = 3;
-            println!("\x1B[2J\x1B[1;1H");
-            EMPTY_STRING
+            //println!("\x1B[2J\x1B[1;1H");
+            (EMPTY_STRING, EMPTY_STRING)
         }
 
         _ => {
             u_sel = 0;
-            EMPTY_STRING
+            (EMPTY_STRING, EMPTY_STRING)
         },
     };
 
@@ -140,8 +144,10 @@ fn local_users(tx: Sender<String>){
 
     loop {
 
-        let (action_menu, mut msg_menu) = prog_control(); 
+        let (action_menu, msg_menu) = prog_control(); 
         
+        let mut ser_menu = serde_json::to_string(&msg_menu).expect("error");
+
         if action_menu == 0 {
 
             println!("Please select a valid option !");
@@ -149,10 +155,10 @@ fn local_users(tx: Sender<String>){
         }
         else {
 
-            msg_menu.push_str(&action_menu.to_string());
-            println!(" MSG => {}", msg_menu);
+            ser_menu.push_str(&action_menu.to_string());
+            println!(" MSG => {}", ser_menu);
 
-            match tx.send(msg_menu){
+            match tx.send(ser_menu){
                 Ok(t) => t,
                 Err(e) => {
                     error!("Failed to send input to main thread => {}", e);
@@ -204,6 +210,37 @@ fn handle_net_msg(message_receiver: &Receiver<[String; 3]>) -> [String; 3]{
     }
 }
 
+#[instrument] //Tracing auto span generation
+fn handle_model_available(model_receiver: &Receiver<(TcpStream, String)>, messages: Vec<[String; 2]>) -> io::Result<usize>{
+
+    match model_receiver.try_recv() {
+        Ok((mut stream, model)) => {
+            
+            for (i, message) in messages.iter().enumerate() {
+
+                if message[1] == model {
+
+                    stream.write_all(message[1].as_bytes())?;
+                        
+                    return Ok(i);
+                }
+                
+            }   
+
+            Err(io::Error::new(io::ErrorKind::NotFound, "Message not found in messages list !"))
+        },
+        Err(mpsc::TryRecvError::Empty) => {
+            // No input received, return Empty String 
+            //Err(io::Error::new(io::ErrorKind::BrokenPipe, "No input received!"))
+            Ok(0)
+        }
+        Err(mpsc::TryRecvError::Disconnected) => {
+            Err(io::Error::new(io::ErrorKind::BrokenPipe, "Input thread has disconnected!"))
+            
+        }
+    }
+}
+
 fn main() {
 
     //Instatiate the subscriber & file appender
@@ -220,15 +257,22 @@ fn main() {
 
     //Initial greetins (todo main menu)----------------------------------------------------------------------------------
     //println!("Welcome to FREDOOM !!!");
-    println!("\x1B[2J\x1B[1;1H");
+    //println!("\x1B[2J\x1B[1;1H");
 
     //Initiate Thread message channel Tx / Rx 
     let (input_message, message_receiver) = mpsc::channel();
     let (net_message, net_receiver) = mpsc::channel();
+    let (model_sender, model_receiver) = mpsc::channel();
+    
 
     let sspan = span.clone();
     //Spawn thread for server initialization
-    thread::spawn( move || sspan.in_scope(move || network::net_init(net_message)));
+    thread::spawn( move || sspan.in_scope(move || network::net_init(net_message, model_sender)));
+
+    let mut model_message: Vec<[String; 2]> = Vec::from([[EMPTY_STRING; 2]]); 
+
+    
+
 
     //Instance of Block struct
     let mut blocks: Block = Block{
@@ -254,7 +298,7 @@ fn main() {
         match now.elapsed(){
 
             Ok(n) => {
-                info!("Tempo => {:?}", n);
+                //info!("Tempo => {:?}", n);
                 if n >= MINUTE{
                     info!("One minute");
 
@@ -308,19 +352,30 @@ fn main() {
 
             if let Some(_) =  message_buffer.get(0){
 
+                
                 user_msg = message_buffer.swap_remove(0);
             }
 
             if user_msg != EMPTY_STRING {
+                println!("User msg => {:?}", user_msg);
 
                 let msg_len = user_msg.len();
                 let code = &user_msg[msg_len -1 .. msg_len];  
+
+                println!("Code => {}", code);
                 
                 match  code {
 
                     "1" => {
 
-                        let selected_model = user_msg[ .. msg_len -1].to_string();
+                        let ser_message = user_msg[ .. msg_len -1].to_string();
+
+                        let (selected_model, model_msg): (String, String) = serde_json::from_str(&ser_message).expect("error");
+
+                        model_message.push([selected_model.clone(), model_msg.clone()]);
+
+                        println!("Model Message => {:?}", model_message);
+
 
                         //Organize data to fit in the message format [current time, address, message text]
                         let message: [String; 3] = [my_node.get_time_ns(), my_node.address.clone(), String::from(selected_model.trim())];
@@ -332,6 +387,12 @@ fn main() {
 
                     "2" => {
                         //let _message_to_model = user_msg[ .. msg_len -1].to_string();
+
+                        println!("-----------------------------");
+                        println!("  !!!   Messages List   !!!");
+                        println!("-----------------------------");
+                        
+                        println!(" Messages => {:?}", model_message);
 
 
                         //For tests purpose , will be changed to reply when requested a message
@@ -366,9 +427,22 @@ fn main() {
         //Clean std out
         //println!("\x1B[2J\x1B[1;1H");
 
+        match handle_model_available(&model_receiver, model_message.clone()){
+            Ok(i) => {
+
+                if i != 0 {
+                    println!("index => {}", i)
+                }
+                
+
+            }
+            Err(e) => {
+                error!("Error while removing message from list => {}", e)
+            }
+        }
         
         blocks.message = get_msg_from_blocks(blocks.message, "remove".to_string());
-        //thread::sleep(Duration::from_millis(3000));
+        thread::sleep(Duration::from_millis(1));
 /*
         let _ = match net::network::request_model_msg("192.168.191.2:6886".to_string())  {
             Ok(n) => n,

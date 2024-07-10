@@ -38,7 +38,7 @@ pub mod network{
     pub const CODE_SIZE: usize = TAIL_CODE.len();
 
     #[instrument]
-    fn handle_message(message: &String, mode: &str, tx: Sender<[String; 3]>, income_stream: TcpStream) -> bool{
+    fn handle_message(message: &String, mode: &str, tx: Sender<[String; 3]>, income_stream: TcpStream, model_tx: Sender<(TcpStream, String)>) -> bool{
 
         //Function to treat incoming / outgoing messages
         let msg_len = message.len();
@@ -64,14 +64,29 @@ pub mod network{
                         match msg_code {
 
                             "####1" => {
+                                //let snd_model_msg = ser_msg.to_string();
+                                let snd_model_msg = String::from("llama 3");
 
+                                if snd_model_msg != EMPTY_STRING {
+
+                                    //Send net message to main thread
+                                    if model_tx.send((income_stream, snd_model_msg)).is_err() {
+                                        error!("Failed to send message to main thread.");
+                                    }
+                                }
+                                else {
+                                    error!("Empty message from model request");
+                                    //break;
+                                    ()
+                                }
+/* 
                                 let _ = match send_model_msg(ser_msg.to_string(), income_stream)  {
                                     Ok(n) => n,
                                     Err(e) =>{
                                         error!("Error found while requesting model message => {}", e);
                                         EMPTY_STRING
                                     }
-                                };
+                                }; */
                             },
 
                             "####2" => {
@@ -133,7 +148,7 @@ pub mod network{
     }
 
     #[instrument]
-    fn handle_client(mut stream: TcpStream, tx: Sender<[String; 3]>) {
+    fn handle_client(mut stream: TcpStream, tx: Sender<[String; 3]>, model_tx: Sender<(TcpStream, String)>) {
 
         let income_addr = match stream.peer_addr(){
             Ok(addr) => addr,
@@ -165,6 +180,7 @@ pub mod network{
             let received = String::from_utf8_lossy(&buf[..bytes_read]);
 
             let snd = tx.clone();
+            let model_snd = model_tx.clone();
 
             let income_stream: TcpStream = match stream.try_clone(){
                 Ok(s) => s,
@@ -174,7 +190,7 @@ pub mod network{
                 }
             };
 
-            if handle_message(&received.to_string(), "receive", snd, income_stream) {
+            if handle_message(&received.to_string(), "receive", snd, income_stream, model_snd) {
 
                 //Repply to client that server is ready to receive stream
                 match stream.write_all("ready_to_receive".as_bytes()){
@@ -222,7 +238,7 @@ pub mod network{
     }
 
     #[instrument]
-    pub fn net_init(tx: Sender<[String; 3]>){
+    pub fn net_init(tx: Sender<[String; 3]>, model_tx: Sender<(TcpStream, String)>){
 
         //Composing IP address with received port
         let mut addr = String::from("0.0.0.0:");
@@ -242,11 +258,12 @@ pub mod network{
         //Create a thread for each received connection
         for stream in listener.incoming(){
             let snd = tx.clone();
+            let model_snd = model_tx.clone();
             match stream {
                 Err(e) => error!("Error found 0 {e}"),
                 Ok(stream) => {
                     thread::spawn(move || {
-                        handle_client(stream, snd);
+                        handle_client(stream, snd, model_snd);
                     });
                 }
             }
