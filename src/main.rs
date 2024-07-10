@@ -34,6 +34,9 @@ const MINUTE: Duration = Duration::from_secs(10);
 //Logging path constant
 const LOG_PATH: &str = "./logs";
 
+//Own Static IP and PORT
+const MY_ADDRESS: &str = "192.168.191.2:6886";
+
 #[instrument]
 fn get_input() -> String {
     
@@ -57,6 +60,7 @@ fn prog_control() -> (u8, (String, String)) {
     println!("2 - Check messages List.");
     println!("3 - Check message table");
     println!("4 - Request message.");
+    println!("----- Local model (to do) -----.");
 
     //Variable to receive user input
     let user_input = get_input();
@@ -211,23 +215,15 @@ fn handle_model_available(model_receiver: &Receiver<(TcpStream, String)>, messag
        
     match model_receiver.try_recv() {
         
-        Ok(n) => {
-
-            let (stream, ser_msg) = n;
+        Ok((stream, ser_msg)) => {
 
             let msg: (String, String) = serde_json::from_str(&ser_msg)?;
 
             let (rcv_key, model) = msg;
-
-            println!("received request => {}", model);
             
             for (i, message) in messages.iter().enumerate() {
-                println!(" message => {}, model => {}", message[0], model);
-                println!("message {:?}, messages {:?}", message, messages);
+                
                 if message[0] == model {
-
-                    //stream.write_all(message[1].as_bytes())?;
-                    println!("Rceived {:?}", stream.peer_addr());
 
                     let _ = match net::network::send_model_msg(rcv_key, message[1].to_string(), stream)  {
                         Ok(n) => n,
@@ -236,10 +232,8 @@ fn handle_model_available(model_receiver: &Receiver<(TcpStream, String)>, messag
                             EMPTY_STRING
                         }
                     };
-                        
                     return Ok(i);
                 }
-                
             }   
             Ok(0)
         },
@@ -362,12 +356,9 @@ fn main() {
             }
 
             if user_msg != EMPTY_STRING {
-                println!("User msg => {:?}", user_msg);
 
                 let msg_len = user_msg.len();
                 let code = &user_msg[msg_len -1 .. msg_len];  
-
-                println!("Code => {}", code);
                 
                 match  code {
 
@@ -379,11 +370,9 @@ fn main() {
 
                         model_message.push([selected_model.clone(), model_msg.clone()]);
 
-                        println!("Model Message => {:?}", model_message);
-
-
                         //Organize data to fit in the message format [current time, address, message text]
-                        let message: [String; 3] = [my_node.get_time_ns(), my_node.address.clone(), String::from(selected_model.trim())];
+                        //let message: [String; 3] = [my_node.get_time_ns(), my_node.address.clone(), String::from(selected_model.trim())];
+                        let message: [String; 3] = [my_node.get_time_ns(), MY_ADDRESS.to_string(), String::from(selected_model.trim())];
 
                         //Call insert function to format and store in a block section
                         blocks.insert(message.clone());
@@ -391,31 +380,43 @@ fn main() {
                     },
 
                     "2" => {
-
                         println!("-----------------------------");
                         println!("  !!!   Messages List   !!!");
                         println!("-----------------------------");
-                        
                         println!(" Messages => {:?}", model_message);
-
                     },
 
                     "3" => {
-
                         println!("-----------------------------");
                         println!("  !!!  Updated blocks  !!!");
                         println!("-----------------------------");
-                        
                         println!(" Blocks => {:?}", blocks.message);
                     }
 
                     "4" => {
 
-                        let model = "llama 3".to_string();
-                        thread::spawn( move || net::network::request_model_msg("192.168.191.2:6886".to_string(), model));
+                        //let remote_server_ip = "192.168.191.2:6886".to_string();
+                        let owned_model = "Phi 3".to_string();
 
+                        for msg in blocks.message.iter(){
+
+                            if msg[2] == owned_model{
+
+                                let remote_server_ip = msg[1].clone();
+                                let model = msg[2].clone();
+
+                                match TcpStream::connect(&remote_server_ip){
+                                    Ok(_) => {
+                                        thread::spawn(move || net::network::request_model_msg(remote_server_ip, model));
+                                    },
+                                    Err(e) => {
+                                        println!("Server not available, try later!");
+                                        error!("Error while checking server connectivity => {}", e)
+                                    },
+                                }
+                            }
+                        }
                     }
-
                     _ => (),                    
                 }
                 
@@ -426,12 +427,9 @@ fn main() {
         }
  
         match handle_model_available(&model_receiver, model_message.clone()){
-            Ok(i) => {
+            Ok(_) => {
+                info!("Message processed")
 
-                if i != 0 {
-                    println!("index => {}", i);
-                    println!("Messato send => {:?}", model_message[i])
-                }
             }
             Err(e) => {
                 error!("Error while removing message from list => {}", e)

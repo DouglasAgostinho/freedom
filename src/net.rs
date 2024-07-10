@@ -74,7 +74,7 @@ pub mod network{
                                         error!("Failed to send message to main thread.");
                                     }
                                     else {
-                                        println!("received request debug ----");
+                                        info!("Model Message sent OK")
                                     }
                                 }
                                 else {
@@ -483,6 +483,9 @@ pub mod network{
             let model_msg = decrypt(shared_key, crypt_msg);
 
             msg_loop = model_msg.clone();
+
+            //Print the code below to clean std out
+            println!("\x1B[2J\x1B[1;1H");
 
             print!("{}", model_msg);      //Uses print! to not insert /n after each received data
 
