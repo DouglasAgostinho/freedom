@@ -64,14 +64,20 @@ pub mod network{
                         match msg_code {
 
                             "####1" => {
-                                //let snd_model_msg = ser_msg.to_string();
-                                let snd_model_msg = String::from("llama 3");
+                                
+                                let snd_model_msg = ser_msg.to_string();
+                                //let snd_model_msg = String::from("llama 3");
+
+                                println!("SND => {}", snd_model_msg);
 
                                 if snd_model_msg != EMPTY_STRING {
 
                                     //Send net message to main thread
                                     if model_tx.send((income_stream, snd_model_msg)).is_err() {
                                         error!("Failed to send message to main thread.");
+                                    }
+                                    else {
+                                        println!("received request debug ----");
                                     }
                                 }
                                 else {
@@ -381,23 +387,29 @@ pub mod network{
     /// Function responsible to perform message exchange securely by
     /// secure assynchronous key exchange and message encryption
     #[instrument]
-    pub fn request_model_msg(dest_ip: String) -> io::Result<String> {
+    pub fn request_model_msg(dest_ip: String, model: String) -> io::Result<String> {
         
         //Generate own Ephemeral Keys
         let (pv_key, pb_key) = generate_own_keys();
 
         //Convert Public key to string
-        let mut s_pb_key = BASE64_STANDARD.encode(pb_key);
+        let s_pb_key = BASE64_STANDARD.encode(pb_key);
 
-        s_pb_key.push_str("####1");    //####1 - code for encryption handshake
-        s_pb_key.push_str(VERSION);    //Insert software version in message tail
+        let to_snd_msg = (s_pb_key, model);
 
+        let mut ser_snd_msg = serde_json::to_string(&to_snd_msg)?;
+
+        ser_snd_msg.push_str("####1");    //####1 - code for encryption handshake
+        ser_snd_msg.push_str(VERSION);    //Insert software version in message tail
+
+        
         let client_stream = client_connect(dest_ip)?;
-
-        let client_stream = client_write(client_stream, s_pb_key)?;
-
+        
+        let client_stream = client_write(client_stream, ser_snd_msg)?;
+        
         let (ser_crypto, client_stream) = client_read(client_stream);
 
+        println!("Debug");
         //Send request for model message and Public Key
         //let ser_crypto: String = match client(s_pb_key, &dest_ip, "model_msg"){
             //Ok(s) => s,
@@ -491,7 +503,7 @@ pub mod network{
     }
 
     #[instrument]
-    pub fn send_model_msg(encoded_key: String, mut income_stream: TcpStream) -> io::Result<String> {
+    pub fn send_model_msg(encoded_key: String, message: String, mut income_stream: TcpStream) -> io::Result<String> {
 
         //Decoding received public key
         let decoded_pb_key = BASE64_STANDARD.decode(encoded_key).expect("error");
@@ -506,7 +518,8 @@ pub mod network{
         let shared_key = generate_shared_key(pv_key, server_pb_key);
 
         //Encrypt message
-        let crypt_msg = encrypt(shared_key, "Who is Andrej Kaparthy?".to_string());
+        //let crypt_msg = encrypt(shared_key, "Who is Andrej Kaparthy?".to_string());
+        let crypt_msg = encrypt(shared_key, message);
 
         //Encoding own public key
         let encoded_my_pb = BASE64_STANDARD.encode(pb_key);

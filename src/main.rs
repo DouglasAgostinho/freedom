@@ -10,8 +10,8 @@ mod block;
 mod crypt;
 
 
-//use std::io; 
-use std::io::{self, Write};
+use std::io; 
+//use std::io::{self, Write};
 use std::thread;
 use std::net::TcpStream;
 use block::{Block, Node};
@@ -56,13 +56,14 @@ fn prog_control() -> (u8, (String, String)) {
     println!("1 - Select model.");
     println!("2 - Check messages List.");
     println!("3 - Check message table");
+    println!("4 - Request message.");
 
     //Variable to receive user input
     let user_input = get_input();
 
     let u_sel: u8;
 
-    let tx_send = match &user_input[..] {
+    let model_and_message = match &user_input[..] {
 
         "1" => {
 
@@ -77,7 +78,7 @@ fn prog_control() -> (u8, (String, String)) {
 
             let user_input = get_input();
 
-            let sel = match &user_input[..] {
+            let model = match &user_input[..] {
 
                 "1" => "llama 3",
                 "2" => "Phi 3",
@@ -89,7 +90,7 @@ fn prog_control() -> (u8, (String, String)) {
             let user_input = get_input();
             
 
-            (sel.to_string(), user_input)
+            (model.to_string(), user_input)
         },
 
         "2" => {
@@ -104,13 +105,19 @@ fn prog_control() -> (u8, (String, String)) {
             (EMPTY_STRING, EMPTY_STRING)
         }
 
+        "4" => {
+            u_sel = 4;
+            //println!("\x1B[2J\x1B[1;1H");
+            (EMPTY_STRING, EMPTY_STRING)
+        }
+
         _ => {
             u_sel = 0;
             (EMPTY_STRING, EMPTY_STRING)
         },
     };
 
-    (u_sel, tx_send)
+    (u_sel, model_and_message)
 
     
 }
@@ -144,9 +151,9 @@ fn local_users(tx: Sender<String>){
 
     loop {
 
-        let (action_menu, msg_menu) = prog_control(); 
+        let (action_menu, model_and_message) = prog_control(); 
         
-        let mut ser_menu = serde_json::to_string(&msg_menu).expect("error");
+        let mut ser_menu = serde_json::to_string(&model_and_message).expect("error");
 
         if action_menu == 0 {
 
@@ -212,33 +219,56 @@ fn handle_net_msg(message_receiver: &Receiver<[String; 3]>) -> [String; 3]{
 
 #[instrument] //Tracing auto span generation
 fn handle_model_available(model_receiver: &Receiver<(TcpStream, String)>, messages: Vec<[String; 2]>) -> io::Result<usize>{
-
+          
+       
     match model_receiver.try_recv() {
-        Ok((mut stream, model)) => {
+        
+        Ok(n) => {
+
+            let (stream, ser_msg) = n;
+
+            let msg: (String, String) = serde_json::from_str(&ser_msg)?;
+
+            let (rcv_key, model) = msg;
+
+            println!("received request => {}", model);
             
             for (i, message) in messages.iter().enumerate() {
+                println!(" message => {}, model => {}", message[0], model);
+                println!("message {:?}, messages {:?}", message, messages);
+                if message[0] == model {
 
-                if message[1] == model {
+                    //stream.write_all(message[1].as_bytes())?;
+                    println!("Rceived {:?}", stream.peer_addr());
 
-                    stream.write_all(message[1].as_bytes())?;
+                    let _ = match net::network::send_model_msg(rcv_key, message[1].to_string(), stream)  {
+                        Ok(n) => n,
+                        Err(e) =>{
+                            error!("Error found while requesting model message => {}", e);
+                            EMPTY_STRING
+                        }
+                    };
                         
                     return Ok(i);
                 }
                 
             }   
-
-            Err(io::Error::new(io::ErrorKind::NotFound, "Message not found in messages list !"))
+            Ok(0)
+        //Err(io::Error::new(io::ErrorKind::NotFound, "Message not found in messages list !"))
         },
         Err(mpsc::TryRecvError::Empty) => {
             // No input received, return Empty String 
             //Err(io::Error::new(io::ErrorKind::BrokenPipe, "No input received!"))
+            
             Ok(0)
         }
         Err(mpsc::TryRecvError::Disconnected) => {
+            
             Err(io::Error::new(io::ErrorKind::BrokenPipe, "Input thread has disconnected!"))
             
         }
     }
+     
 }
 
 fn main() {
@@ -394,16 +424,6 @@ fn main() {
                         
                         println!(" Messages => {:?}", model_message);
 
-
-                        //For tests purpose , will be changed to reply when requested a message
-
-                        let _ = match net::network::request_model_msg("192.168.191.2:6886".to_string())  {
-                            Ok(n) => n,
-                            Err(e) =>{
-                                error!("Error found while requesting model message => {}", e);
-                                EMPTY_STRING
-                            }
-                        };
                     },
 
                     "3" => {
@@ -413,6 +433,22 @@ fn main() {
                         println!("-----------------------------");
                         
                         println!(" Blocks => {:?}", blocks.message);
+                    }
+
+                    "4" => {
+
+                        let model = "llama 3".to_string();
+                        //For tests purpose , will be changed to reply when requested a message
+                        thread::spawn( move || net::network::request_model_msg("192.168.191.3:6886".to_string(), model));
+                        /* 
+                        let _ = match net::network::request_model_msg("192.168.191.3:6886".to_string())  {
+                            Ok(n) => n,
+                            Err(e) =>{
+                                error!("Error found while requesting model message => {}", e);
+                                EMPTY_STRING
+                            }
+                        };*/
+
                     }
 
                     _ => (),                    
@@ -426,12 +462,13 @@ fn main() {
 
         //Clean std out
         //println!("\x1B[2J\x1B[1;1H");
-
+ 
         match handle_model_available(&model_receiver, model_message.clone()){
             Ok(i) => {
 
                 if i != 0 {
-                    println!("index => {}", i)
+                    println!("index => {}", i);
+                    println!("Messato send => {:?}", model_message[i])
                 }
                 
 
@@ -439,7 +476,7 @@ fn main() {
             Err(e) => {
                 error!("Error while removing message from list => {}", e)
             }
-        }
+        } 
         
         blocks.message = get_msg_from_blocks(blocks.message, "remove".to_string());
         thread::sleep(Duration::from_millis(1));
