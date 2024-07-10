@@ -1,5 +1,11 @@
 
 /*
+
+    //Clean std out
+    //println!("\x1B[2J\x1B[1;1H");
+
+*/
+/*
     This program is intended to be a place where all users can present their own models
     or integrate a pool of models for ...
 */
@@ -11,7 +17,6 @@ mod crypt;
 
 
 use std::io; 
-//use std::io::{self, Write};
 use std::thread;
 use std::net::TcpStream;
 use block::{Block, Node};
@@ -34,8 +39,6 @@ fn get_input() -> String {
     
     let mut user_input = EMPTY_STRING;
 
-    //Get user input
-    //println!("Please enter the message");
     match io::stdin().read_line(&mut user_input) {
         Ok(_) => (),
         Err(e) => error!("Error found while getting user input => {}", e),
@@ -45,9 +48,6 @@ fn get_input() -> String {
 
 #[instrument]
 fn prog_control() -> (u8, (String, String)) {
-
-    //Clean std out
-    //println!("\x1B[2J\x1B[1;1H");
 
     println!("-----------------------------");
     println!(" !!! Welcome to fredoom !!!");
@@ -69,8 +69,6 @@ fn prog_control() -> (u8, (String, String)) {
 
             u_sel = 1;
             
-            //println!("\x1B[2J\x1B[1;1H");
-
             println!("Please select an option below.");            
             println!("1 - llama 3.");
             println!("2 - Phi 3.");
@@ -95,19 +93,16 @@ fn prog_control() -> (u8, (String, String)) {
 
         "2" => {
             u_sel = 2;
-            //println!("\x1B[2J\x1B[1;1H");
             (EMPTY_STRING, EMPTY_STRING)
         }
 
         "3" => {
             u_sel = 3;
-            //println!("\x1B[2J\x1B[1;1H");
             (EMPTY_STRING, EMPTY_STRING)
         }
 
         "4" => {
             u_sel = 4;
-            //println!("\x1B[2J\x1B[1;1H");
             (EMPTY_STRING, EMPTY_STRING)
         }
 
@@ -219,7 +214,6 @@ fn handle_net_msg(message_receiver: &Receiver<[String; 3]>) -> [String; 3]{
 
 #[instrument] //Tracing auto span generation
 fn handle_model_available(model_receiver: &Receiver<(TcpStream, String)>, messages: Vec<[String; 2]>) -> io::Result<usize>{
-          
        
     match model_receiver.try_recv() {
         
@@ -254,18 +248,13 @@ fn handle_model_available(model_receiver: &Receiver<(TcpStream, String)>, messag
                 
             }   
             Ok(0)
-        //Err(io::Error::new(io::ErrorKind::NotFound, "Message not found in messages list !"))
         },
         Err(mpsc::TryRecvError::Empty) => {
-            // No input received, return Empty String 
-            //Err(io::Error::new(io::ErrorKind::BrokenPipe, "No input received!"))
-            
             Ok(0)
         }
         Err(mpsc::TryRecvError::Disconnected) => {
             
             Err(io::Error::new(io::ErrorKind::BrokenPipe, "Input thread has disconnected!"))
-            
         }
     }
      
@@ -284,11 +273,6 @@ fn main() {
     let span: span::Span = span!(Level::INFO,"Main");
     let _enter: span::Entered = span.enter();
 
-
-    //Initial greetins (todo main menu)----------------------------------------------------------------------------------
-    //println!("Welcome to FREDOOM !!!");
-    //println!("\x1B[2J\x1B[1;1H");
-
     //Initiate Thread message channel Tx / Rx 
     let (input_message, message_receiver) = mpsc::channel();
     let (net_message, net_receiver) = mpsc::channel();
@@ -300,9 +284,6 @@ fn main() {
     thread::spawn( move || sspan.in_scope(move || network::net_init(net_message, model_sender)));
 
     let mut model_message: Vec<[String; 2]> = Vec::from([[EMPTY_STRING; 2]]); 
-
-    
-
 
     //Instance of Block struct
     let mut blocks: Block = Block{
@@ -344,6 +325,7 @@ fn main() {
                     message.push_str(VERSION);
 
                     let msg = message.clone();
+
                     //Spawn thread to propagate listening port to all network
                     thread::spawn(move || network::to_net(msg));
 
@@ -382,7 +364,6 @@ fn main() {
 
             if let Some(_) =  message_buffer.get(0){
 
-                
                 user_msg = message_buffer.swap_remove(0);
             }
 
@@ -416,7 +397,6 @@ fn main() {
                     },
 
                     "2" => {
-                        //let _message_to_model = user_msg[ .. msg_len -1].to_string();
 
                         println!("-----------------------------");
                         println!("  !!!   Messages List   !!!");
@@ -438,16 +418,7 @@ fn main() {
                     "4" => {
 
                         let model = "llama 3".to_string();
-                        //For tests purpose , will be changed to reply when requested a message
                         thread::spawn( move || net::network::request_model_msg("192.168.191.3:6886".to_string(), model));
-                        /* 
-                        let _ = match net::network::request_model_msg("192.168.191.3:6886".to_string())  {
-                            Ok(n) => n,
-                            Err(e) =>{
-                                error!("Error found while requesting model message => {}", e);
-                                EMPTY_STRING
-                            }
-                        };*/
 
                     }
 
@@ -459,9 +430,6 @@ fn main() {
                 break;
             }
         }
-
-        //Clean std out
-        //println!("\x1B[2J\x1B[1;1H");
  
         match handle_model_available(&model_receiver, model_message.clone()){
             Ok(i) => {
@@ -470,8 +438,6 @@ fn main() {
                     println!("index => {}", i);
                     println!("Messato send => {:?}", model_message[i])
                 }
-                
-
             }
             Err(e) => {
                 error!("Error while removing message from list => {}", e)
@@ -480,15 +446,6 @@ fn main() {
         
         blocks.message = get_msg_from_blocks(blocks.message, "remove".to_string());
         thread::sleep(Duration::from_millis(1));
-/*
-        let _ = match net::network::request_model_msg("192.168.191.2:6886".to_string())  {
-            Ok(n) => n,
-            Err(e) =>{
-                error!("Error found while requesting model message => {}", e);
-                EMPTY_STRING
-            }
-        };
- */
     }
 
 }

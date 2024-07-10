@@ -66,9 +66,6 @@ pub mod network{
                             "####1" => {
                                 
                                 let snd_model_msg = ser_msg.to_string();
-                                //let snd_model_msg = String::from("llama 3");
-
-                                println!("SND => {}", snd_model_msg);
 
                                 if snd_model_msg != EMPTY_STRING {
 
@@ -82,17 +79,9 @@ pub mod network{
                                 }
                                 else {
                                     error!("Empty message from model request");
-                                    //break;
+                                    
                                     ()
                                 }
-/* 
-                                let _ = match send_model_msg(ser_msg.to_string(), income_stream)  {
-                                    Ok(n) => n,
-                                    Err(e) =>{
-                                        error!("Error found while requesting model message => {}", e);
-                                        EMPTY_STRING
-                                    }
-                                }; */
                             },
 
                             "####2" => {
@@ -181,8 +170,6 @@ pub mod network{
                 }
             };
 
-            //if bytes_read == 0 {break}
-
             let received = String::from_utf8_lossy(&buf[..bytes_read]);
 
             let snd = tx.clone();
@@ -220,6 +207,7 @@ pub mod network{
                         Ok(n) => {
                             let msg = String::from_utf8_lossy(&buffer[0..n]);
                             print!("{}", msg);      //Uses print! to not insert /n after each received data
+
                             // Ensure immediate output
                             match io::stdout().flush(){
                                 Ok(n) => n,
@@ -300,7 +288,7 @@ pub mod network{
     fn client(message: String, address: &str, mode: &str)-> io::Result<String> {
         match mode {
             "simple" => {
-                //println!("done {}", message);
+                
                 // Connect to the server
                 let mut stream = TcpStream::connect(address)?;
                 // Send data to the server
@@ -324,6 +312,7 @@ pub mod network{
             "model_msg" => {
                 // Connect to the server
                 let mut stream = TcpStream::connect(address)?;
+
                 // Send data to the server
                 stream.write_all(message.as_bytes())?;
 
@@ -409,18 +398,7 @@ pub mod network{
         
         let (ser_crypto, client_stream) = client_read(client_stream);
 
-        println!("Debug");
         //Send request for model message and Public Key
-        //let ser_crypto: String = match client(s_pb_key, &dest_ip, "model_msg"){
-            //Ok(s) => s,
-            //Err(e) => {
-                //error!("Error while requesting client message => {}", e);
-                //EMPTY_STRING
-            //}
-        //};
-
-        println!(" rec {}", ser_crypto);
-
         //Received message will come as a serialized tuple (encrypted message, client public key)
         let received_crypto :(String, Vec<u8>) = serde_json::from_str(&ser_crypto).expect("Error");
 
@@ -436,12 +414,6 @@ pub mod network{
         //Decrypt received message
         let msg = decrypt(shared_key, received_crypto.1);
 
-        println!("Decrypted {}", msg);
-
-        //enviar msg para modelo
-        //esperar resposta como stream
-        //retornar resposta encriptada
-
         let model_address = "192.168.191.1:8687".to_string();
 
         // Connect to the model
@@ -449,7 +421,6 @@ pub mod network{
 
         // Send data to the server
         let model_stream = client_write(model_stream, msg)?;
-        //model_stream.write_all(msg.as_bytes())?;
 
         let mut msg_loop = EMPTY_STRING;
 
@@ -467,37 +438,6 @@ pub mod network{
 
             //println!("SND -> msg => {}", msg_loop);
         }
-
-        //Create buffer to receive data
-        //let mut buffer = NET_BUFFER;
-
-        // Receive data continuously from the model and send encrypted
-        /*
-        loop {
-            match model_stream.read(&mut buffer) {
-                Ok(0) => {
-                    info!("Connection closed by server");
-                    break
-                },
-                Ok(n) => {
-                    let reply = String::from_utf8_lossy(&buffer[0..n]);
-                    //print!("{}", msg);      //Uses print! to not insert /n after each received data
-
-                    // Ensure immediate output
-                    match io::stdout().flush(){
-                        Ok(n) => n,
-                        Err(e) => {
-                            error!("Error while flushing Std output => {}", e);
-                            break
-                        }
-                    }  
-                },
-                Err(e) => {
-                    error!("Failed to receive message: {}", e);
-                    break;
-                }
-            }
-        }*/
 
         Ok(EMPTY_STRING)
     }
@@ -518,7 +458,6 @@ pub mod network{
         let shared_key = generate_shared_key(pv_key, server_pb_key);
 
         //Encrypt message
-        //let crypt_msg = encrypt(shared_key, "Who is Andrej Kaparthy?".to_string());
         let crypt_msg = encrypt(shared_key, message);
 
         //Encoding own public key
@@ -533,8 +472,6 @@ pub mod network{
         //Repply to client serialized message
         income_stream.write_all(ser_crypt_msg.as_bytes()).expect("error");
 
-        //let mut buffer = NET_BUFFER;
-
         let mut msg_loop = EMPTY_STRING;
 
         while msg_loop != "!!!EMPTY_STRING!!!"{
@@ -546,8 +483,6 @@ pub mod network{
             let model_msg = decrypt(shared_key, crypt_msg);
 
             msg_loop = model_msg.clone();
-
-            //println!("RCV -> msg => {}", msg_loop);
 
             print!("{}", model_msg);      //Uses print! to not insert /n after each received data
 
@@ -562,13 +497,6 @@ pub mod network{
         }
 
         Ok(EMPTY_STRING)
-    }
-
-    ///Function to receive or send model repply
-    #[instrument]
-    pub fn _process_model_msg(message: String)  {       
-        
-
     }
 
 }
