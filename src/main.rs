@@ -14,16 +14,39 @@
 mod net;
 mod block;
 mod crypt;
+mod web;
 
 
 use std::io; 
 use std::thread;
+use web::services::web_server;
 use std::net::TcpStream;
 use block::{Block, Node};
 use net::network::{self, VERSION};
 use std::time::{Duration, SystemTime};
 use std::sync::mpsc::{self, Receiver, Sender};
 use tracing::{span, info, error, Level, instrument};
+
+const GREETINGS: &str = 
+"
+    ##################################
+    #                                #
+    # -----------------------------  #
+    #  !!! Welcome to fredoom !!!    #
+    # -----------------------------  #
+    #                                #
+    ##################################
+";
+
+const MAIN_MENU: &str = 
+"\n\n
+    Please select an option below. 
+    1 - Select model.              
+    2 - Check messages List.       
+    3 - Check message table.       
+    4 - Request message.           
+        -- Local model (to do) --    
+";
 
 //Constant to use in String based variables
 const EMPTY_STRING: String = String::new();
@@ -51,7 +74,7 @@ fn get_input() -> String {
 
 #[instrument]
 fn prog_control() -> (u8, (String, String)) {
-
+/*
     println!("-----------------------------");
     println!(" !!! Welcome to fredoom !!!");
     println!("-----------------------------");
@@ -61,9 +84,15 @@ fn prog_control() -> (u8, (String, String)) {
     println!("3 - Check message table");
     println!("4 - Request message.");
     println!("----- Local model (to do) -----.");
-
+    println!("\n");
+    println!("--->");
+*/
+    println!("\x1B[2J\x1B[1;1H");
+    println!("{}", GREETINGS);
+    println!("{}", MAIN_MENU);
     //Variable to receive user input
     let user_input = get_input();
+    
 
     let u_sel: u8;
 
@@ -288,6 +317,8 @@ fn main() {
     //Spawn thread for handle local user interaction
     thread::spawn(move || {local_users(input_message)});
 
+    thread::spawn(move || {web_server()});
+
     loop{
 
         //Buffer to store received messages
@@ -380,20 +411,31 @@ fn main() {
                     },
 
                     "2" => {
+                        println!("\x1B[2J\x1B[1;1H");
+    
                         println!("-----------------------------");
                         println!("  !!!   Messages List   !!!");
                         println!("-----------------------------");
                         println!(" Messages => {:?}", model_message);
+
+                        println!("{}", MAIN_MENU);
                     },
 
                     "3" => {
+
+                        println!("\x1B[2J\x1B[1;1H");
+                        
                         println!("-----------------------------");
                         println!("  !!!  Updated blocks  !!!");
                         println!("-----------------------------");
                         println!(" Blocks => {:?}", blocks.message);
+
+                        println!("{}", MAIN_MENU);
                     }
 
                     "4" => {
+
+                        println!("\x1B[2J\x1B[1;1H");
 
                         //let remote_server_ip = "192.168.191.2:6886".to_string();
                         let owned_model = "Phi 3".to_string();
@@ -414,8 +456,13 @@ fn main() {
                                         error!("Error while checking server connectivity => {}", e)
                                     },
                                 }
+                            } 
+                            else {
+                                println!("No messages for our server, try later!");
                             }
                         }
+
+                        println!("{}", MAIN_MENU);
                     }
                     _ => (),                    
                 }
@@ -427,8 +474,11 @@ fn main() {
         }
  
         match handle_model_available(&model_receiver, model_message.clone()){
-            Ok(_) => {
-                info!("Message processed")
+            Ok(n) => {
+
+                if n != 0 {
+                    info!("Message processed")
+                }               
 
             }
             Err(e) => {

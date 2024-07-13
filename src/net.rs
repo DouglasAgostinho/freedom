@@ -24,7 +24,7 @@ pub mod network{
     const MAX_PEERS: u8 = 5;
 
     //Network buffer
-    const NET_BUFFER: [u8; 2048] = [0; 2048];
+    pub const NET_BUFFER: [u8; 2048] = [0; 2048];
 
     //Constant Address & PORT
     pub const NET_PORT: &str = "6886";
@@ -400,10 +400,16 @@ pub mod network{
 
         //Send request for model message and Public Key
         //Received message will come as a serialized tuple (encrypted message, client public key)
-        let received_crypto :(String, Vec<u8>) = serde_json::from_str(&ser_crypto).expect("Error");
+        let received_crypto :(String, Vec<u8>) = serde_json::from_str(&ser_crypto)?;
 
         //Decoding client public key
-        let decoded_pb_key = BASE64_STANDARD.decode(received_crypto.0).expect("error");
+        let decoded_pb_key = match BASE64_STANDARD.decode(received_crypto.0){
+            Ok(d) => d,
+            Err(e) => {
+                error!("Error found while decoding pb Key => {}", e);
+                Vec::new()
+            }
+        };
 
         // Create an `UnparsedPublicKey` from the bytes
         let cl_pub_key = UnparsedPublicKey::new(&X25519, decoded_pb_key.clone());
@@ -446,7 +452,13 @@ pub mod network{
     pub fn send_model_msg(encoded_key: String, message: String, mut income_stream: TcpStream) -> io::Result<String> {
 
         //Decoding received public key
-        let decoded_pb_key = BASE64_STANDARD.decode(encoded_key).expect("error");
+        let decoded_pb_key = match BASE64_STANDARD.decode(encoded_key){
+            Ok(d) => d,
+            Err(e) => {
+                error!("Error found while decoding pb Key => {}", e);
+                Vec::new()
+            }
+        };
 
         // Create an `UnparsedPublicKey` from the bytes
         let server_pb_key = UnparsedPublicKey::new(&X25519, decoded_pb_key.clone());
@@ -467,10 +479,10 @@ pub mod network{
         let crypt_tuple: (String, Vec<u8>)= (encoded_my_pb, crypt_msg);
 
         //Serialize formated message
-        let ser_crypt_msg = serde_json::to_string(&crypt_tuple).expect("error");
+        let ser_crypt_msg = serde_json::to_string(&crypt_tuple)?;
 
         //Repply to client serialized message
-        income_stream.write_all(ser_crypt_msg.as_bytes()).expect("error");
+        income_stream.write_all(ser_crypt_msg.as_bytes())?;
 
         let mut msg_loop = EMPTY_STRING;
 
@@ -478,7 +490,7 @@ pub mod network{
 
             let (ser_crypt_msg, _) = client_read(income_stream.try_clone()?);
 
-            let crypt_msg: Vec<u8> = serde_json::from_str(&ser_crypt_msg).expect("Error");
+            let crypt_msg: Vec<u8> = serde_json::from_str(&ser_crypt_msg)?;
 
             let model_msg = decrypt(shared_key, crypt_msg);
 
