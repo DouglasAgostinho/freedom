@@ -1,6 +1,6 @@
 # Freedom
 
-### The idea behind this project is that Open LLM achievements should be a easy to use and accessible.
+### The idea behind this project is that Open LLM achievements should be easy to use and accessible.
 ### Simple as just run a program and interact with it through your favorite interface graphical, console or web.
 
 
