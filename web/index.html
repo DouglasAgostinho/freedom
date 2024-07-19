@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grid Layout with Different Sizes</title>
+    <link rel="stylesheet" href="/web/style.css">
+</head>
+<body>
+    <div class="grid-container">
+        <div class="grid-item item1">
+            <center>
+                <h1 class="positioned">Freedom</h1>
+            </center>
+
+            <center>
+                <div class="pos2" id="content"> </div>
+            </center>
+        </div>
+                
+
+        <div class="grid-item item2">
+            <form action="/submit" method="post">
+                <center>
+                    <input type="radio" name="model" id="mistral" value="mistral">mistral
+                    <input type="radio" name="model" id="llama_3" value="llama">llama 3
+                    <input type="radio" name="model" id="phi_3" value="phi"  checked="checked">local (phi 3)
+                    <h1></h1> 
+                </center>
+
+                <center>
+                        <!-- <input type="text" name="message" size="80" value="Insert your message here..."style="background-color: rgb(179, 172, 172);" /> -->
+                        <input type="text" id="message" name="message" size="80" placeholder="Insert your message here..." />
+                        <input type="submit" id="submit_bt" name="submit_button" value="submit"/> 
+                        <h1></h1> 
+                        
+                </center>
+            </form>            
+        </div>
+        
+        <div class="grid-item item3">
+            <img src="/web/freedom.png" alt="Description of Image" id="myImage">    
+        </div>
+    </div>
+
+
+    <script>
+        function updateContent() {
+            fetch('/update')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('content').innerHTML = data;
+                })
+                .catch(error => console.error('Error fetching content:', error));
+        }
+
+        // Update content every second (1000 milliseconds)
+        setInterval(updateContent, 1000);
+
+        // Initial update
+        updateContent();
+    </script>
+</body>
+</html>

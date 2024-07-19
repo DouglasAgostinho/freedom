@@ -14,18 +14,29 @@
 mod net;
 mod block;
 mod crypt;
-mod web;
 
 
 use std::io; 
 use std::thread;
-use web::services::web_server;
 use std::net::TcpStream;
 use block::{Block, Node};
 use net::network::{self, VERSION};
 use std::time::{Duration, SystemTime};
 use std::sync::mpsc::{self, Receiver, Sender};
 use tracing::{span, info, error, Level, instrument};
+
+use axum::{
+    extract::State, 
+    response::{Html, IntoResponse}, 
+    routing::{get, get_service}, Router
+};
+
+use tower_http::services::ServeDir;
+use tokio::sync::Mutex;
+use std::sync::Arc;
+//use std::time::SystemTime;
+
+
 
 const GREETINGS: &str = 
 "
@@ -277,7 +288,8 @@ fn handle_model_available(model_receiver: &Receiver<(TcpStream, String)>, messag
      
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
 
     //Instatiate the subscriber & file appender
     let file_appender = tracing_appender::rolling::hourly(LOG_PATH, "log");
@@ -302,8 +314,8 @@ fn main() {
 
     let mut model_message: Vec<[String; 2]> = Vec::from([[EMPTY_STRING; 2]]); 
 
-    //Instance of Block struct
-    let mut blocks: Block = Block{
+    //Instance of Block struct  let mut source_blocks: Block = Block{
+    let source_blocks: Block = Block{
         message: Vec::from([[EMPTY_STRING; 3]])
     };
 
@@ -317,9 +329,17 @@ fn main() {
     //Spawn thread for handle local user interaction
     thread::spawn(move || {local_users(input_message)});
 
-    thread::spawn(move || {web_server()});
 
-    loop{
+    let arc_blocks = Arc::new(Mutex::new(source_blocks));
+
+    let thread_blocks = Arc::clone(&arc_blocks);
+
+    let web_blocks = Arc::clone(&arc_blocks);
+    
+
+    tokio::spawn(async move { loop{
+
+        let mut blocks = thread_blocks.lock().await;
 
         //Buffer to store received messages
         let mut message_buffer: Vec<String> = Vec::new();
@@ -488,6 +508,98 @@ fn main() {
         
         //blocks.message = get_msg_from_blocks(blocks.message, "remove".to_string());
         thread::sleep(Duration::from_millis(1));
-    }
+    }});
 
+
+    //let shared_data: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+    
+    let shared_data: Arc<Mutex<Vec<[String; 3]>>> = Arc::new(Mutex::new(Vec::from([[EMPTY_STRING; 3]])));
+    
+    let s_main = Arc::clone(&shared_data);
+
+    let s_thread = Arc::clone(&shared_data);
+
+    let handle_1 = tokio::task::spawn(async move {server(s_thread)});
+
+    //let mut n = 0;
+
+    let handle_2 = tokio::task::spawn(async move {
+
+        loop {
+        let blocks = web_blocks.lock().await;
+
+        let mut s = s_main.lock().await;
+
+        for message in blocks.message.iter(){
+
+            if !s.contains(&message){
+
+                //Call insert function to format and store in a block section
+                s.push(message.clone());
+            }
+
+        }
+        
+
+        //s.push(format!("{:?}", blocks.message));
+        
+        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+        }
+
+        /* S
+        while n < 500{
+
+            let mut s = s_main.lock().await;
+
+            println!("N times => {}", n);
+            n += 1;
+    
+            s.push(format!("{}", n));
+            
+           tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+        }
+        */
+    });
+    
+    let hhh = handle_1.await.unwrap();
+    hhh.await;
+    handle_2.await.unwrap();
+
+}
+
+
+
+//Async functions
+async fn update_content(State(s_name): State<Arc<Mutex<Vec<[String; 3]>>>>) -> Html<String> {
+
+    let name = s_name.lock().await;
+
+    let now = SystemTime::now();
+    
+    let h = Html(format!("<p> Hy {:?} this is the updated content! => {:?} </p>", name, now));
+
+    h
+}
+
+async fn root() -> impl IntoResponse {
+
+    let file = tokio::fs::read_to_string("web/index.html").await.expect("Error while readin a file");
+
+    Html(file)
+}
+
+async fn server(data: Arc<Mutex<Vec<[String; 3]>>>){
+
+    let app = Router::new()
+    .route("/", get(root))
+    .nest_service("/web", get_service(ServeDir::new("web")))
+    .route("/update", get(update_content))    
+    .with_state(data);
+
+    let addr = "0.0.0.0:8686";
+
+    println!("Listening on => {}", addr);
+
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    axum::serve(listener, app.into_make_service()).await.unwrap();
 }
