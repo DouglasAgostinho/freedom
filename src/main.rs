@@ -1,11 +1,5 @@
 
 /*
-
-    //Clean std out
-    //println!("\x1B[2J\x1B[1;1H");
-
-*/
-/*
     This program is intended to be a place where all users can present their own models
     or integrate a pool of models for ...
 */
@@ -34,8 +28,6 @@ use axum::{
 use tower_http::services::ServeDir;
 use tokio::sync::Mutex;
 use std::sync::Arc;
-//use std::time::SystemTime;
-
 
 
 const GREETINGS: &str = 
@@ -85,22 +77,11 @@ fn get_input() -> String {
 
 #[instrument]
 fn prog_control() -> (u8, (String, String)) {
-/*
-    println!("-----------------------------");
-    println!(" !!! Welcome to fredoom !!!");
-    println!("-----------------------------");
-    println!("Please select an option below.");
-    println!("1 - Select model.");
-    println!("2 - Check messages List.");
-    println!("3 - Check message table");
-    println!("4 - Request message.");
-    println!("----- Local model (to do) -----.");
-    println!("\n");
-    println!("--->");
-*/
+
     println!("\x1B[2J\x1B[1;1H");
     println!("{}", GREETINGS);
     println!("{}", MAIN_MENU);
+
     //Variable to receive user input
     let user_input = get_input();
     
@@ -159,29 +140,6 @@ fn prog_control() -> (u8, (String, String)) {
     (u_sel, model_and_message)
 }
 
-/*
-///Receive an item from a Vector of vector(String) if match the NODE Address
-fn get_msg_from_blocks(mut block: Vec<[String; 3]>, addr: String) -> Vec<[String; 3]>{
-
-    //Create a vector to receive index of match messages
-    let mut to_remove = Vec::new();
-    
-    //Loop through Block messages to find desired value
-    for (num, val) in block.iter().enumerate(){
-        if val[2] == addr {
-            to_remove.push(num);
-        }
-    }
-    
-    //Loop to remove desired messages
-    for n in to_remove{
-        block.swap_remove(n);
-    }
-
-    //Return block without removed messages
-    block
-}
-*/
 
 #[instrument]
 fn local_users(tx: Sender<String>){
@@ -250,8 +208,53 @@ fn handle_net_msg(message_receiver: &Receiver<[String; 3]>) -> [String; 3]{
     }
 }
 
+fn le_model (model_rx: &Receiver<String>) -> String{
+
+    //let mut received_msg = String::new();
+
+    //while received_msg != "!!!EMPTY_STRING!!!"{
+        let mmsg = match model_rx.try_recv() {
+            Ok(msg) => {
+                //Return input received
+                info!("Received input: {:?}", msg);
+                msg
+                
+            },
+            Err(mpsc::TryRecvError::Empty) => {
+                // No input received, return Empty String 
+                EMPTY_STRING
+                
+            }
+            Err(mpsc::TryRecvError::Disconnected) => {
+                error!("Input thread has disconnected.");
+                EMPTY_STRING
+            }
+        };
+        mmsg
+/*
+        let m_len = mmsg.len();
+
+        if m_len >= 18 {
+            received_msg = String::from(&mmsg[m_len - 18 .. m_len]);
+        }
+
+        if mmsg != EMPTY_STRING{
+            println!("{}", mmsg);
+        }*/
+        
+    //}
+
+}
+
 #[instrument] //Tracing auto span generation
-fn handle_model_available(model_receiver: &Receiver<(TcpStream, String)>, messages: Vec<[String; 2]>) -> io::Result<usize>{
+fn handle_model_available(
+    model_receiver: &Receiver<(TcpStream, String)>, 
+    messages: Vec<[String; 2]>,
+    tx_model: Sender<String>
+    ) -> io::Result<usize>{
+
+    //let (tx_model, model_rx) = mpsc::channel();
+    //let mut received_msg = String::new();
        
     match model_receiver.try_recv() {
         
@@ -264,14 +267,51 @@ fn handle_model_available(model_receiver: &Receiver<(TcpStream, String)>, messag
             for (i, message) in messages.iter().enumerate() {
                 
                 if message[0] == model {
-
-                    let _ = match net::network::send_model_msg(rcv_key, message[1].to_string(), stream)  {
-                        Ok(n) => n,
+                    let msg = message.clone();
+                    println!("Debugs");
+                    thread::spawn( move ||
+                    match net::network::send_model_msg(rcv_key, msg[1].to_string(), stream, tx_model) {
+                        Ok(n) => {n},
                         Err(e) =>{
                             error!("Error found while requesting model message => {}", e);
                             EMPTY_STRING
                         }
-                    };
+                    });
+
+/* 
+                    while received_msg != "!!!EMPTY_STRING!!!"{
+                        let mmsg = match model_rx.try_recv() {
+                            Ok(msg) => {
+                                //Return input received
+                                info!("Received input: {:?}", msg);
+                                msg
+                                
+                            },
+                            Err(mpsc::TryRecvError::Empty) => {
+                                // No input received, return Empty String 
+                                EMPTY_STRING
+                                
+                            }
+                            Err(mpsc::TryRecvError::Disconnected) => {
+                                error!("Input thread has disconnected.");
+                                EMPTY_STRING
+                            }
+                        };
+
+                        let m_len = mmsg.len();
+
+                        if m_len >= 18 {
+                            received_msg = String::from(&mmsg[m_len - 18 .. m_len]);
+                        }
+
+                        if mmsg != EMPTY_STRING{
+                            println!("{}", mmsg);
+                        }
+                        
+                    }*/
+                    
+
+
                     return Ok(i);
                 }
             }   
@@ -306,6 +346,7 @@ async fn main() {
     let (input_message, message_receiver) = mpsc::channel();
     let (net_message, net_receiver) = mpsc::channel();
     let (model_sender, model_receiver) = mpsc::channel();
+    let (tx_model, model_rx) = mpsc::channel();
     
 
     let sspan = span.clone();
@@ -334,10 +375,25 @@ async fn main() {
 
     let thread_blocks = Arc::clone(&arc_blocks);
 
-    let web_blocks = Arc::clone(&arc_blocks);
+    //let web_blocks = Arc::clone(&arc_blocks);
+
+    let shared_mmsg = Arc::new(Mutex::new(String::new()));
+    let re_mmsg = Arc::clone(&shared_mmsg);
+    
+    let le_mmsg = Arc::clone(&shared_mmsg);
+
     
 
     tokio::spawn(async move { loop{
+
+        let sre = le_model(&model_rx);
+        let le_len = sre.len();
+        let mut re_msg = re_mmsg.lock().await;
+
+        if le_len > 0{
+            re_msg.clone_from(&sre);
+        }
+                
 
         let mut blocks = thread_blocks.lock().await;
 
@@ -493,7 +549,7 @@ async fn main() {
             }
         }
  
-        match handle_model_available(&model_receiver, model_message.clone()){
+        match handle_model_available(&model_receiver, model_message.clone(), tx_model.clone()){
             Ok(n) => {
 
                 if n != 0 {
@@ -506,23 +562,21 @@ async fn main() {
             }
         } 
         
-        //blocks.message = get_msg_from_blocks(blocks.message, "remove".to_string());
         thread::sleep(Duration::from_millis(1));
     }});
 
-
-    //let shared_data: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
     
-    let shared_data: Arc<Mutex<Vec<[String; 3]>>> = Arc::new(Mutex::new(Vec::from([[EMPTY_STRING; 3]])));
+    //let shared_data: Arc<Mutex<Vec<[String; 3]>>> = Arc::new(Mutex::new(Vec::from([[EMPTY_STRING; 3]])));
     
-    let s_main = Arc::clone(&shared_data);
+    //let s_main = Arc::clone(&shared_data);
 
-    let s_thread = Arc::clone(&shared_data);
+    //let s_thread = Arc::clone(&shared_data);
 
-    let handle_1 = tokio::task::spawn(async move {server(s_thread)});
+    //let handle_1 = tokio::task::spawn(async move {server(s_thread, le_mmsg)});
+    let handle_1 = tokio::task::spawn(async move {server(le_mmsg)});
 
     //let mut n = 0;
-
+/* 
     let handle_2 = tokio::task::spawn(async move {
 
         loop {
@@ -540,44 +594,32 @@ async fn main() {
 
         }
         
-
-        //s.push(format!("{:?}", blocks.message));
-        
         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
         }
-
-        /* S
-        while n < 500{
-
-            let mut s = s_main.lock().await;
-
-            println!("N times => {}", n);
-            n += 1;
-    
-            s.push(format!("{}", n));
-            
-           tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-        }
-        */
-    });
+    });*/
     
     let hhh = handle_1.await.unwrap();
     hhh.await;
-    handle_2.await.unwrap();
+    //handle_2.await.unwrap();
 
 }
 
 
 
 //Async functions
-async fn update_content(State(s_name): State<Arc<Mutex<Vec<[String; 3]>>>>) -> Html<String> {
+async fn update_content(State(s_msg): State<Arc<Mutex<String>>>) -> Html<String> {
+    //async fn update_content(State((s_name, s_msg)): State<(Arc<Mutex<Vec<[String; 3]>>>, Arc<Mutex<String>>)>) -> Html<String> {
 
-    let name = s_name.lock().await;
-
-    let now = SystemTime::now();
+    //let _name = s_name.lock().await;
     
-    let h = Html(format!("<p> Hy {:?} this is the updated content! => {:?} </p>", name, now));
+    let msg = s_msg.lock().await;
 
+    //println!("Debug => {}", msg);
+    //let now = SystemTime::now();
+    
+    //let h = Html(format!("<p> Hy {:?} this is the updated content! => {:?} </p>", msg , now));
+    let h = Html(format!("<p> {} </p>", msg));
+    
     h
 }
 
@@ -588,15 +630,16 @@ async fn root() -> impl IntoResponse {
     Html(file)
 }
 
-async fn server(data: Arc<Mutex<Vec<[String; 3]>>>){
+async fn server(msg: Arc<Mutex<String>>){
+    //async fn server(data: Arc<Mutex<Vec<[String; 3]>>>, msg: Arc<Mutex<String>>){
 
     let app = Router::new()
     .route("/", get(root))
     .nest_service("/web", get_service(ServeDir::new("web")))
     .route("/update", get(update_content))    
-    .with_state(data);
+    .with_state(msg);
 
-    let addr = "0.0.0.0:8686";
+    let addr = "0.0.0.0:8680";
 
     println!("Listening on => {}", addr);
 

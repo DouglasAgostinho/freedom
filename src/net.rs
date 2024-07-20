@@ -7,10 +7,10 @@
 pub mod network{
 
     use std::thread;
-    use std::io::{self, Read, Write};
-    use std::sync::mpsc::Sender;
-    use std::net::{TcpListener, TcpStream};
     use base64::prelude::*;
+    use std::sync::mpsc::Sender;    
+    use std::io::{self, Read, Write};    
+    use std::net::{TcpListener, TcpStream};    
     use tracing::{instrument, info, error};
     use ring::agreement::{UnparsedPublicKey, X25519};
     use crate::crypt::crypt::{generate_own_keys, generate_shared_key, encrypt, decrypt}; 
@@ -36,6 +36,17 @@ pub mod network{
     //Message Code
     pub const TAIL_CODE: &str = "00000";
     pub const CODE_SIZE: usize = TAIL_CODE.len();
+
+    pub const MAIN_MENU: &str = 
+    "\n\n
+    Please select an option below. 
+    1 - Select model.              
+    2 - Check messages List.       
+    3 - Check message table.       
+    4 - Request message.           
+        -- Local model (to do) --    
+    ";
+
 
     #[instrument]
     fn handle_message(message: &String, mode: &str, tx: Sender<[String; 3]>, income_stream: TcpStream, model_tx: Sender<(TcpStream, String)>) -> bool{
@@ -449,7 +460,7 @@ pub mod network{
     }
 
     #[instrument]
-    pub fn send_model_msg(encoded_key: String, message: String, mut income_stream: TcpStream) -> io::Result<String> {
+    pub fn send_model_msg(encoded_key: String, message: String, mut income_stream: TcpStream, tx: Sender<String>) -> io::Result<String> {
 
         //Decoding received public key
         let decoded_pb_key = match BASE64_STANDARD.decode(encoded_key){
@@ -496,10 +507,25 @@ pub mod network{
 
             msg_loop = model_msg.clone();
 
-            //Print the code below to clean std out
-            println!("\x1B[2J\x1B[1;1H");
+            let msg_len = msg_loop.len();
 
-            print!("{}", model_msg);      //Uses print! to not insert /n after each received data
+            if msg_len >= 18 {
+                msg_loop = String::from(&msg_loop[msg_len - 18 .. msg_len]);
+            }
+            
+
+            //Print the code below to clean std out
+            //println!("\x1B[2J\x1B[1;1H");
+
+            //print!("{}", model_msg);      //Uses print! to not insert /n after each received data
+            //print!("{}", msg_loop); 
+            match tx.send(model_msg){
+                Ok(t) => t,
+                Err(e) => {
+                    error!("Failed to send input to main thread => {}", e);
+                    break
+                }
+            }
 
             // Ensure immediate output
             match io::stdout().flush(){
@@ -510,6 +536,8 @@ pub mod network{
                 }
             }
         }
+
+        println!("{}", MAIN_MENU);
 
         Ok(EMPTY_STRING)
     }
