@@ -210,8 +210,6 @@ fn handle_net_msg(message_receiver: &Receiver<[String; 3]>) -> [String; 3]{
 
 fn le_model (model_rx: &Receiver<String>) -> String{
 
-    //let mut received_msg = String::new();
-
     //while received_msg != "!!!EMPTY_STRING!!!"{
         let mmsg = match model_rx.try_recv() {
             Ok(msg) => {
@@ -231,19 +229,6 @@ fn le_model (model_rx: &Receiver<String>) -> String{
             }
         };
         mmsg
-/*
-        let m_len = mmsg.len();
-
-        if m_len >= 18 {
-            received_msg = String::from(&mmsg[m_len - 18 .. m_len]);
-        }
-
-        if mmsg != EMPTY_STRING{
-            println!("{}", mmsg);
-        }*/
-        
-    //}
-
 }
 
 #[instrument] //Tracing auto span generation
@@ -253,9 +238,6 @@ fn handle_model_available(
     tx_model: Sender<String>
     ) -> io::Result<usize>{
 
-    //let (tx_model, model_rx) = mpsc::channel();
-    //let mut received_msg = String::new();
-       
     match model_receiver.try_recv() {
         
         Ok((stream, ser_msg)) => {
@@ -277,41 +259,6 @@ fn handle_model_available(
                             EMPTY_STRING
                         }
                     });
-
-/* 
-                    while received_msg != "!!!EMPTY_STRING!!!"{
-                        let mmsg = match model_rx.try_recv() {
-                            Ok(msg) => {
-                                //Return input received
-                                info!("Received input: {:?}", msg);
-                                msg
-                                
-                            },
-                            Err(mpsc::TryRecvError::Empty) => {
-                                // No input received, return Empty String 
-                                EMPTY_STRING
-                                
-                            }
-                            Err(mpsc::TryRecvError::Disconnected) => {
-                                error!("Input thread has disconnected.");
-                                EMPTY_STRING
-                            }
-                        };
-
-                        let m_len = mmsg.len();
-
-                        if m_len >= 18 {
-                            received_msg = String::from(&mmsg[m_len - 18 .. m_len]);
-                        }
-
-                        if mmsg != EMPTY_STRING{
-                            println!("{}", mmsg);
-                        }
-                        
-                    }*/
-                    
-
-
                     return Ok(i);
                 }
             }   
@@ -404,7 +351,6 @@ async fn main() {
         match now.elapsed(){
 
             Ok(n) => {
-                //info!("Tempo => {:?}", n);
                 if n >= MINUTE{
                     info!("One minute");
 
@@ -478,7 +424,6 @@ async fn main() {
                         model_message.push([selected_model.clone(), model_msg.clone()]);
 
                         //Organize data to fit in the message format [current time, address, message text]
-                        //let message: [String; 3] = [my_node.get_time_ns(), my_node.address.clone(), String::from(selected_model.trim())];
                         let message: [String; 3] = [my_node.get_time_ns(), MY_ADDRESS.to_string(), String::from(selected_model.trim())];
 
                         //Call insert function to format and store in a block section
@@ -513,7 +458,6 @@ async fn main() {
 
                         println!("\x1B[2J\x1B[1;1H");
 
-                        //let remote_server_ip = "192.168.191.2:6886".to_string();
                         let owned_model = "Phi 3".to_string();
 
                         for msg in blocks.message.iter(){
@@ -542,7 +486,6 @@ async fn main() {
                     }
                     _ => (),                    
                 }
-                
             }
             else {
                 break;
@@ -555,71 +498,28 @@ async fn main() {
                 if n != 0 {
                     info!("Message processed")
                 }               
-
             }
             Err(e) => {
                 error!("Error while removing message from list => {}", e)
             }
         } 
-        
         thread::sleep(Duration::from_millis(1));
     }});
 
-    
-    //let shared_data: Arc<Mutex<Vec<[String; 3]>>> = Arc::new(Mutex::new(Vec::from([[EMPTY_STRING; 3]])));
-    
-    //let s_main = Arc::clone(&shared_data);
-
-    //let s_thread = Arc::clone(&shared_data);
-
-    //let handle_1 = tokio::task::spawn(async move {server(s_thread, le_mmsg)});
     let handle_1 = tokio::task::spawn(async move {server(le_mmsg)});
-
-    //let mut n = 0;
-/* 
-    let handle_2 = tokio::task::spawn(async move {
-
-        loop {
-        let blocks = web_blocks.lock().await;
-
-        let mut s = s_main.lock().await;
-
-        for message in blocks.message.iter(){
-
-            if !s.contains(&message){
-
-                //Call insert function to format and store in a block section
-                s.push(message.clone());
-            }
-
-        }
-        
-        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-        }
-    });*/
     
     let hhh = handle_1.await.unwrap();
     hhh.await;
-    //handle_2.await.unwrap();
-
 }
 
 
 
 //Async functions
 async fn update_content(State(s_msg): State<Arc<Mutex<String>>>) -> Html<String> {
-    //async fn update_content(State((s_name, s_msg)): State<(Arc<Mutex<Vec<[String; 3]>>>, Arc<Mutex<String>>)>) -> Html<String> {
-
-    //let _name = s_name.lock().await;
     
     let msg = s_msg.lock().await;
 
-    //println!("Debug => {}", msg);
-    //let now = SystemTime::now();
-    
-    //let h = Html(format!("<p> Hy {:?} this is the updated content! => {:?} </p>", msg , now));
-    let h = Html(format!("<p> {} </p>", msg));
-    
+    let h = Html(format!("<p> {} </p>", msg));    
     h
 }
 
@@ -631,7 +531,6 @@ async fn root() -> impl IntoResponse {
 }
 
 async fn server(msg: Arc<Mutex<String>>){
-    //async fn server(data: Arc<Mutex<Vec<[String; 3]>>>, msg: Arc<Mutex<String>>){
 
     let app = Router::new()
     .route("/", get(root))
