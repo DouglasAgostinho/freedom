@@ -302,8 +302,9 @@ async fn main() {
 
     let mut model_message: Vec<[String; 2]> = Vec::from([[EMPTY_STRING; 2]]); 
 
-    //Instance of Block struct  let mut source_blocks: Block = Block{
-    let source_blocks: Block = Block{
+    //Instance of Block struct  
+    let mut blocks: Block = Block{
+        
         message: Vec::from([[EMPTY_STRING; 3]])
     };
 
@@ -317,19 +318,10 @@ async fn main() {
     //Spawn thread for handle local user interaction
     thread::spawn(move || {local_users(input_message)});
 
-
-    let arc_blocks = Arc::new(Mutex::new(source_blocks));
-
-    let thread_blocks = Arc::clone(&arc_blocks);
-
-    //let web_blocks = Arc::clone(&arc_blocks);
-
     let shared_mmsg = Arc::new(Mutex::new(String::new()));
     let re_mmsg = Arc::clone(&shared_mmsg);
     
     let le_mmsg = Arc::clone(&shared_mmsg);
-
-    
 
     tokio::spawn(async move { loop{
 
@@ -341,9 +333,6 @@ async fn main() {
             re_msg.clone_from(&sre);
         }
                 
-
-        let mut blocks = thread_blocks.lock().await;
-
         //Buffer to store received messages
         let mut message_buffer: Vec<String> = Vec::new();
 
