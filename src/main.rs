@@ -210,7 +210,6 @@ fn handle_net_msg(message_receiver: &Receiver<[String; 3]>) -> [String; 3]{
 
 fn le_model (model_rx: &Receiver<String>) -> String{
 
-    //while received_msg != "!!!EMPTY_STRING!!!"{
         let mmsg = match model_rx.try_recv() {
             Ok(msg) => {
                 //Return input received
@@ -295,7 +294,6 @@ async fn main() {
     let (model_sender, model_receiver) = mpsc::channel();
     let (tx_model, model_rx) = mpsc::channel();
     
-
     let sspan = span.clone();
     //Spawn thread for server initialization
     thread::spawn( move || sspan.in_scope(move || network::net_init(net_message, model_sender)));
@@ -304,7 +302,7 @@ async fn main() {
 
     //Instance of Block struct  
     let mut blocks: Block = Block{
-        //let source_blocks: Block = Block{
+
         message: Vec::from([[EMPTY_STRING; 3]])
     };
 
@@ -333,8 +331,6 @@ async fn main() {
             re_msg.clone_from(&sre);
         }
                 
-
-        //let mut blocks = thread_blocks.lock().await;
 
         //Buffer to store received messages
         let mut message_buffer: Vec<String> = Vec::new();
@@ -503,7 +499,6 @@ async fn main() {
     let hhh = handle_1.await.unwrap();
     hhh.await;
 }
-
 
 
 //Async functions
