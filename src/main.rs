@@ -304,7 +304,7 @@ async fn main() {
 
     //Instance of Block struct  
     let mut blocks: Block = Block{
-        
+        //let source_blocks: Block = Block{
         message: Vec::from([[EMPTY_STRING; 3]])
     };
 
@@ -333,6 +333,9 @@ async fn main() {
             re_msg.clone_from(&sre);
         }
                 
+
+        //let mut blocks = thread_blocks.lock().await;
+
         //Buffer to store received messages
         let mut message_buffer: Vec<String> = Vec::new();
 
