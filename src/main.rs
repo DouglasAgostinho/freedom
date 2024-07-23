@@ -302,17 +302,22 @@ async fn main() {
     //Spawn thread for server initialization
     thread::spawn( move || main_span_clone.in_scope(move || network::net_init(network_message_tx, model_request_tx)));
 
-    let mut model_message: Vec<[String; 2]> = Vec::from([[EMPTY_STRING; 2]]); 
+    let model_message: Vec<[String; 2]> = Vec::from([[EMPTY_STRING; 2]]); 
+
+    let shared_model_message = Arc::new(Mutex::new(model_message));
+    
 
     //Instance of Block struct  
-    let mut blocks: Block = Block{
-        message: Vec::from([[EMPTY_STRING; 3]])
-    };
+    //let mut blocks: Block = Block{
+    //    message: Vec::from([[EMPTY_STRING; 3]])
+    //};
 
     //Instance of Node struct
     let mut my_node: Node = Node{address:EMPTY_STRING};
     my_node.address = my_node.gen_address();
 
+    let shared_node = Arc::new(Mutex::new(my_node));
+    
     //Initiate time measurement - for time triggered features
     let mut now = SystemTime::now();
 
@@ -324,10 +329,33 @@ async fn main() {
     let write_model_msg = Arc::clone(&shared_model_msg);
     let read_model_msg = Arc::clone(&shared_model_msg);
 
+
+    //Shared Variable for Blocks write
+    let blocks: Block = Block{
+        message: Vec::from([[EMPTY_STRING; 3]])
+    };
+
+
+    let shared_blocks = Arc::new(Mutex::new(blocks));
+
+    
+
     tokio::spawn(async move { loop{
 
-        {
-            let received_model_msg = le_model(&model_reply_rx);
+        let arc_write_node = Arc::clone(&shared_node);
+
+        let arc_write_model_message = Arc::clone(&shared_model_message);
+        let arc_02_model_message = Arc::clone(&shared_model_message);
+
+        
+        let arc_read_blocks = Arc::clone(&shared_blocks);
+        let arc_net_write_blocks = Arc::clone(&shared_blocks);
+        let arc_local_write_blocks = Arc::clone(&shared_blocks);
+
+    
+        let received_model_msg = le_model(&model_reply_rx);
+
+        if received_model_msg != EMPTY_STRING{
             let received_msg_len = received_model_msg.len();
             let mut write_msg = write_model_msg.lock().await;
 
@@ -335,6 +363,7 @@ async fn main() {
                 write_msg.clone_from(&received_model_msg);
             }
         }
+            
                 
         //Buffer to store received messages
         let mut message_buffer: Vec<String> = Vec::new();
@@ -345,9 +374,10 @@ async fn main() {
             Ok(n) => {
                 if n >= MINUTE{
                     info!("One minute");
-
+                    let read_blocks = arc_read_blocks.lock().await;
                     //Propagate message block
-                    let mut message = match serde_json::to_string(&blocks.message){
+                    let mut message = match serde_json::to_string(&read_blocks.message){
+                        //let mut message = match serde_json::to_string(&blocks.message){
                         Ok(msg) => msg,
                         Err(e) => {
                             error!("Error while serializing Block propagation message {}", e);
@@ -374,22 +404,33 @@ async fn main() {
         // Check for new messages from the network thread
         let mut net_msg: [String; 3] = handle_net_msg(&network_message_rx);
 
-        loop {
+        
 
-            if net_msg[0] != EMPTY_STRING {
+        tokio::spawn( async move{
+            
+            loop {
 
-                if !blocks.message.contains(&net_msg){
+                let mut net_write_blocks = arc_net_write_blocks.lock().await;
+                
+                if net_msg[0] != EMPTY_STRING {
 
-                    //Call insert function to format and store in a block section
-                    blocks.insert(net_msg.clone());
+
+
+                    if !net_write_blocks.message.contains(&net_msg){
+
+                        //Call insert function to format and store in a block section
+                        net_write_blocks.insert(net_msg.clone());
+                    }
+
+                    net_msg = [EMPTY_STRING; 3];
                 }
+                else {
+                    break;
+                }
+            }
+        });
 
-                net_msg = [EMPTY_STRING; 3];
-            }
-            else {
-                break;
-            }
-        }
+        tokio::spawn( async move{
 
         loop{
 
@@ -404,6 +445,12 @@ async fn main() {
 
                 let msg_len = user_msg.len();
                 let code = &user_msg[msg_len -1 .. msg_len];  
+
+                let mut local_write_blocks = arc_local_write_blocks.lock().await;
+
+                let mut write_model_message = arc_write_model_message.lock().await;
+
+                let write_node = arc_write_node.lock().await;
                 
                 match  code {
 
@@ -413,13 +460,14 @@ async fn main() {
 
                         let (selected_model, model_msg): (String, String) = serde_json::from_str(&ser_message).expect("error");
 
-                        model_message.push([selected_model.clone(), model_msg.clone()]);
+                        write_model_message.push([selected_model.clone(), model_msg.clone()]);
 
                         //Organize data to fit in the message format [current time, address, message text]
-                        let message: [String; 3] = [my_node.get_time_ns(), MY_ADDRESS.to_string(), String::from(selected_model.trim())];
+                        let message: [String; 3] = [write_node.get_time_ns(), MY_ADDRESS.to_string(), String::from(selected_model.trim())];
 
+                        
                         //Call insert function to format and store in a block section
-                        blocks.insert(message.clone());
+                        local_write_blocks.insert(message.clone());
 
                     },
 
@@ -429,7 +477,7 @@ async fn main() {
                         println!("-----------------------------");
                         println!("  !!!   Messages List   !!!");
                         println!("-----------------------------");
-                        println!(" Messages => {:?}", model_message);
+                        println!(" Messages => {:?}", write_model_message);
 
                         println!("{}", MAIN_MENU);
                     },
@@ -441,7 +489,7 @@ async fn main() {
                         println!("-----------------------------");
                         println!("  !!!  Updated blocks  !!!");
                         println!("-----------------------------");
-                        println!(" Blocks => {:?}", blocks.message);
+                        println!(" Blocks => {:?}", local_write_blocks.message);
 
                         println!("{}", MAIN_MENU);
                     }
@@ -452,7 +500,7 @@ async fn main() {
 
                         let owned_model = "Phi 3".to_string();
 
-                        for msg in blocks.message.iter(){
+                        for msg in local_write_blocks.message.iter(){
 
                             if msg[2] == owned_model{
 
@@ -483,8 +531,11 @@ async fn main() {
                 break;
             }
         }
+    });
+
+        let a_model_message = arc_02_model_message.lock().await;
  
-        match handle_model_available(&model_request_rx, model_message.clone(), model_reply_tx.clone()){
+        match handle_model_available(&model_request_rx, a_model_message.clone(), model_reply_tx.clone()){
             Ok(n) => {
 
                 if n != 0 {
@@ -509,7 +560,6 @@ async fn main() {
 async fn update_content(State(s_msg): State<Arc<Mutex<String>>>) -> Html<String> {
     
     let msg = s_msg.lock().await;
-
     let h = Html(format!("<p> {} </p>", msg));    
     h
 }
@@ -517,7 +567,6 @@ async fn update_content(State(s_msg): State<Arc<Mutex<String>>>) -> Html<String>
 async fn root() -> impl IntoResponse {
 
     let file = tokio::fs::read_to_string("web/index.html").await.expect("Error while readin a file");
-
     Html(file)
 }
 

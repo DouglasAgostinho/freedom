@@ -14,6 +14,7 @@ pub struct NetWorkMessage {
     code:       String,        
 }
 
+//#[derive(Clone)]
 pub struct Block {        
     pub message:    Vec<[String; 3]>,
 }
