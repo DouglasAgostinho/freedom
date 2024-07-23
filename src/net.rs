@@ -47,9 +47,14 @@ pub mod network{
         -- Local model (to do) --    
     ";
 
-
+    
     #[instrument]
-    fn handle_message(message: &String, mode: &str, tx: Sender<[String; 3]>, income_stream: TcpStream, model_tx: Sender<(TcpStream, String)>) -> bool{
+    fn handle_message(
+        message: &String, 
+        mode: &str, 
+        tx: Sender<[String; 3]>, 
+        income_stream: TcpStream, 
+        model_tx: Sender<(TcpStream, String)>) -> bool {
 
         //Function to treat incoming / outgoing messages
         let msg_len = message.len();
@@ -154,7 +159,10 @@ pub mod network{
     }
 
     #[instrument]
-    fn handle_client(mut stream: TcpStream, tx: Sender<[String; 3]>, model_tx: Sender<(TcpStream, String)>) {
+    fn handle_client(
+        mut stream: TcpStream, 
+        tx: Sender<[String; 3]>, 
+        model_tx: Sender<(TcpStream, String)>) {
 
         let income_addr = match stream.peer_addr(){
             Ok(addr) => addr,
@@ -168,7 +176,6 @@ pub mod network{
         let mut buf = NET_BUFFER;
         
         loop {
-
             let bytes_read = match stream.read(&mut buf){
                 Ok(0) => {
                     info!("Connection closed by server");

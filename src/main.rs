@@ -285,18 +285,22 @@ async fn main() {
         .init();
 
     //Entering Main Loggin Level
-    let span: span::Span = span!(Level::INFO,"Main");
-    let _enter: span::Entered = span.enter();
+    let main_span: span::Span = span!(Level::INFO,"Main");
+    let _enter: span::Entered = main_span.enter();
 
-    //Initiate Thread message channel Tx / Rx 
-    let (input_message, message_receiver) = mpsc::channel();
-    let (net_message, net_receiver) = mpsc::channel();
-    let (model_sender, model_receiver) = mpsc::channel();
-    let (tx_model, model_rx) = mpsc::channel();
+    //Initiate Thread message channels
+    //Local messages
+    let (local_message_tx, local_message_rx) = mpsc::channel();
+    //Network messages received from peers
+    let (network_message_tx, network_message_rx) = mpsc::channel();
+    //Get model parameters from peer
+    let (model_request_tx, model_request_rx) = mpsc::channel();
+    //Reply from model
+    let (model_reply_tx, model_reply_rx) = mpsc::channel();
     
-    let sspan = span.clone();
+    let main_span_clone = main_span.clone();
     //Spawn thread for server initialization
-    thread::spawn( move || sspan.in_scope(move || network::net_init(net_message, model_sender)));
+    thread::spawn( move || main_span_clone.in_scope(move || network::net_init(network_message_tx, model_request_tx)));
 
     let mut model_message: Vec<[String; 2]> = Vec::from([[EMPTY_STRING; 2]]); 
 
@@ -314,7 +318,7 @@ async fn main() {
     let mut now = SystemTime::now();
 
     //Spawn thread for handle local user interaction
-    thread::spawn(move || {local_users(input_message)});
+    thread::spawn(move || {local_users(local_message_tx)});
 
     let shared_mmsg = Arc::new(Mutex::new(String::new()));
     let re_mmsg = Arc::clone(&shared_mmsg);
@@ -323,7 +327,7 @@ async fn main() {
 
     tokio::spawn(async move { loop{
 
-        let sre = le_model(&model_rx);
+        let sre = le_model(&model_reply_rx);
         let le_len = sre.len();
         let mut re_msg = re_mmsg.lock().await;
 
@@ -365,10 +369,10 @@ async fn main() {
         }
 
         // Check for new messages from the input thread
-        message_buffer.push(handle_thread_msg(&message_receiver));
+        message_buffer.push(handle_thread_msg(&local_message_rx));
 
         // Check for new messages from the network thread
-        let mut net_msg: [String; 3] = handle_net_msg(&net_receiver);
+        let mut net_msg: [String; 3] = handle_net_msg(&network_message_rx);
 
         loop {
 
@@ -480,7 +484,7 @@ async fn main() {
             }
         }
  
-        match handle_model_available(&model_receiver, model_message.clone(), tx_model.clone()){
+        match handle_model_available(&model_request_rx, model_message.clone(), model_reply_tx.clone()){
             Ok(n) => {
 
                 if n != 0 {

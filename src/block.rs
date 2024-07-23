@@ -1,5 +1,6 @@
 
 use sha2::{Digest, Sha512};
+use serde::{Deserialize, Serialize};
 use std::time::{SystemTime,UNIX_EPOCH};
 
 pub struct Block {        
@@ -49,4 +50,14 @@ impl Node {
         since_the_epoch.as_nanos().to_string()
     }
     
+}
+
+
+#[derive(Serialize, Deserialize)]
+pub struct NetWorkMessage {
+    version:    String,
+    time:       String,
+    message:    String,
+    address:    String,
+    code:       String,        
 }
