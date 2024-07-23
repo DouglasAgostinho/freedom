@@ -1,10 +1,21 @@
 
 use sha2::{Digest, Sha512};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};   
 use std::time::{SystemTime,UNIX_EPOCH};
 
+
+
+#[derive(Serialize, Deserialize)]
+pub struct NetWorkMessage {
+    version:    String,
+    time:       String,
+    message:    String,
+    address:    String,
+    code:       String,        
+}
+
 pub struct Block {        
-    pub message:    Vec<[String; 3]>,    
+    pub message:    Vec<[String; 3]>,
 }
 impl Block {
 
@@ -52,12 +63,3 @@ impl Node {
     
 }
 
-
-#[derive(Serialize, Deserialize)]
-pub struct NetWorkMessage {
-    version:    String,
-    time:       String,
-    message:    String,
-    address:    String,
-    code:       String,        
-}

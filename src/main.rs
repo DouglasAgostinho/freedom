@@ -306,7 +306,6 @@ async fn main() {
 
     //Instance of Block struct  
     let mut blocks: Block = Block{
-
         message: Vec::from([[EMPTY_STRING; 3]])
     };
 
@@ -320,22 +319,23 @@ async fn main() {
     //Spawn thread for handle local user interaction
     thread::spawn(move || {local_users(local_message_tx)});
 
-    let shared_mmsg = Arc::new(Mutex::new(String::new()));
-    let re_mmsg = Arc::clone(&shared_mmsg);
-    
-    let le_mmsg = Arc::clone(&shared_mmsg);
+    //Shared variable for receive model (write) message and send to web server (read)
+    let shared_model_msg = Arc::new(Mutex::new(String::new()));
+    let write_model_msg = Arc::clone(&shared_model_msg);
+    let read_model_msg = Arc::clone(&shared_model_msg);
 
     tokio::spawn(async move { loop{
 
-        let sre = le_model(&model_reply_rx);
-        let le_len = sre.len();
-        let mut re_msg = re_mmsg.lock().await;
+        {
+            let received_model_msg = le_model(&model_reply_rx);
+            let received_msg_len = received_model_msg.len();
+            let mut write_msg = write_model_msg.lock().await;
 
-        if le_len > 0{
-            re_msg.clone_from(&sre);
+            if received_msg_len > 0{
+                write_msg.clone_from(&received_model_msg);
+            }
         }
                 
-
         //Buffer to store received messages
         let mut message_buffer: Vec<String> = Vec::new();
 
@@ -498,7 +498,7 @@ async fn main() {
         thread::sleep(Duration::from_millis(1));
     }});
 
-    let handle_1 = tokio::task::spawn(async move {server(le_mmsg)});
+    let handle_1 = tokio::task::spawn(async move {server(read_model_msg)});
     
     let hhh = handle_1.await.unwrap();
     hhh.await;

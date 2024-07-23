@@ -9,7 +9,7 @@ pub mod network{
     use std::thread;
     use base64::prelude::*;
     use std::sync::mpsc::Sender;    
-    use std::io::{self, Read, Write};    
+    use std::io::{self, Read, Write}; 
     use std::net::{TcpListener, TcpStream};    
     use tracing::{instrument, info, error};
     use ring::agreement::{UnparsedPublicKey, X25519};
@@ -46,7 +46,6 @@ pub mod network{
     4 - Request message.           
         -- Local model (to do) --    
     ";
-
     
     #[instrument]
     fn handle_message(
