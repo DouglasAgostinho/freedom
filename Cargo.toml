@@ -20,3 +20,4 @@ engine = "0.0.0"
 tokio = {version = "1.38.1", features = ["full"]}
 axum = "0.7.5"
 tower-http = { version = "0.5.2", features = ["fs"]}
+tokio-console = "0.1.11"
