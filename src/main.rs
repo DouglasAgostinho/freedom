@@ -30,8 +30,8 @@ use axum::{
 };
 
 use tower_http::services::ServeDir;
-use tokio::sync::Mutex;
-use std::sync::Arc;
+//use tokio::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 
 const GREETINGS: &str = 
@@ -358,12 +358,11 @@ async fn main() {
             // Check for new messages from the network thread
             let net_msg: [String; 3] = handle_net_msg(&network_message_rx);
 
-
-            let mut net_write_blocks = arc_net_write_blocks.lock().await;
             
             if net_msg[0] != EMPTY_STRING {
 
-
+                let mut net_write_blocks = arc_net_write_blocks.lock().unwrap();
+                //let mut net_write_blocks = arc_net_write_blocks.lock().await;
 
                 if !net_write_blocks.message.contains(&net_msg){
 
@@ -422,15 +421,18 @@ async fn main() {
                 let msg_len = user_msg.len();
                 let code = &user_msg[msg_len -1 .. msg_len];  
 
-                let mut local_write_blocks = arc_local_write_blocks.lock().await;
-
-                let mut write_model_message = arc_write_model_message.lock().await;
-
-                let write_node = arc_write_node.lock().await;
                 
                 match  code {
 
                     "1" => {
+
+
+                        let mut local_write_blocks = arc_local_write_blocks.lock().unwrap();
+                        //let mut local_write_blocks = arc_local_write_blocks.lock().await;
+                        let mut write_model_message = arc_write_model_message.lock().unwrap();
+                        //let mut write_model_message = arc_write_model_message.lock().await;
+                        let write_node = arc_write_node.lock().unwrap();
+                        //let write_node = arc_write_node.lock().await;
 
                         let ser_message = user_msg[ .. msg_len -1].to_string();
 
@@ -449,7 +451,8 @@ async fn main() {
 
                     "2" => {
                         println!("\x1B[2J\x1B[1;1H");
-    
+                        let write_model_message = arc_write_model_message.lock().unwrap();
+                        //let write_model_message = arc_write_model_message.lock().await;
                         println!("-----------------------------");
                         println!("  !!!   Messages List   !!!");
                         println!("-----------------------------");
@@ -461,7 +464,8 @@ async fn main() {
                     "3" => {
 
                         println!("\x1B[2J\x1B[1;1H");
-                        
+                        let local_write_blocks = arc_local_write_blocks.lock().unwrap();
+                        //let local_write_blocks = arc_local_write_blocks.lock().await;
                         println!("-----------------------------");
                         println!("  !!!  Updated blocks  !!!");
                         println!("-----------------------------");
@@ -475,8 +479,16 @@ async fn main() {
                         println!("\x1B[2J\x1B[1;1H");
 
                         let owned_model = "Phi 3".to_string();
+                        let local_write_blocks = {
+                            let blocks = arc_local_write_blocks.lock().unwrap();
 
-                        for msg in local_write_blocks.message.iter(){
+                            let bb = blocks.message.clone();
+
+                            bb
+                        };
+                        //let local_write_blocks = arc_local_write_blocks.lock().await;
+                        for msg in local_write_blocks.iter(){
+                            //for msg in local_write_blocks.message.iter(){
 
                             if msg[2] == owned_model{
 
@@ -485,7 +497,8 @@ async fn main() {
 
                                 match TcpStream::connect(&remote_server_ip){
                                     Ok(_) => {
-                                        thread::spawn(move || net::network::request_model_msg(remote_server_ip, model));
+                                        tokio::spawn(async move { net::network::request_model_msg(remote_server_ip, model)});
+                                        //thread::spawn(move || net::network::request_model_msg(remote_server_ip, model));
                                     },
                                     Err(e) => {
                                         println!("Server not available, try later!");
@@ -494,6 +507,7 @@ async fn main() {
                                 }
                             } 
                             else {
+                                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
                                 println!("No messages for our server, try later!");
                             }
                         }
@@ -529,7 +543,8 @@ async fn main() {
 
         if received_model_msg != EMPTY_STRING{
             let received_msg_len = received_model_msg.len();
-            let mut write_msg = write_model_msg.lock().await;
+            let mut write_msg = write_model_msg.lock().unwrap();
+            //let mut write_msg = write_model_msg.lock().await;
 
             if received_msg_len > 0{
                 write_msg.clone_from(&received_model_msg);
@@ -544,23 +559,32 @@ async fn main() {
             Ok(n) => {
                 if n >= MINUTE{
                     info!("One minute");
-                    let read_blocks = arc_read_blocks.lock().await;
-                    //Propagate message block
-                    let mut message = match serde_json::to_string(&read_blocks.message){
-                        //let mut message = match serde_json::to_string(&blocks.message){
-                        Ok(msg) => msg,
-                        Err(e) => {
-                            error!("Error while serializing Block propagation message {}", e);
-                            EMPTY_STRING
-                        },
-                    };
-                    message.push_str("00001");    //00001 - code for block propagation (check message code table)
-                    message.push_str(VERSION);
 
-                    let msg = message.clone();
+                    let msg = {
+
+                        let read_blocks = arc_read_blocks.lock().unwrap();
+                        //let read_blocks = arc_read_blocks.lock().await;
+                        //Propagate message block
+                        let mut message = match serde_json::to_string(&read_blocks.message){
+                            //let mut message = match serde_json::to_string(&blocks.message){
+                            Ok(msg) => msg,
+                            Err(e) => {
+                                error!("Error while serializing Block propagation message {}", e);
+                                EMPTY_STRING
+                            },
+                        };
+                        message.push_str("00001");    //00001 - code for block propagation (check message code table)
+                        message.push_str(VERSION);
+
+                        let msg = message.clone();
+
+                        msg
+                    };
+                    
 
                     //Spawn thread to propagate listening port to all network
-                    thread::spawn(move || network::to_net(msg));
+                    tokio::spawn( async move {network::to_net(msg)});
+                    //thread::spawn(move || network::to_net(msg));
 
                     now = SystemTime::now();
                 }
@@ -578,7 +602,8 @@ async fn main() {
 
 
         
-        let a_model_message = arc_02_model_message.lock().await;
+        let a_model_message = arc_02_model_message.lock().unwrap();
+        //let a_model_message = arc_02_model_message.lock().await;
  
         match handle_model_available(&model_request_rx, a_model_message.clone(), model_reply_tx.clone()){
             Ok(n) => {
@@ -613,7 +638,8 @@ async fn main() {
 //Async functions
 async fn update_content(State(s_msg): State<Arc<Mutex<String>>>) -> Html<String> {
     
-    let msg = s_msg.lock().await;
+    let msg = s_msg.lock().unwrap();
+    //let msg = s_msg.lock().await;
     let h = Html(format!("<p> {} => length {} </p>", msg, msg.len()));    
     h
 }
