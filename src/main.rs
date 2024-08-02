@@ -236,7 +236,7 @@ fn le_model (model_rx: &Receiver<String>) -> String{
 #[instrument] //Tracing auto span generation
 fn handle_model_available(
     model_receiver: &Receiver<(TcpStream, String)>, 
-    messages: Vec<[String; 2]>,
+    mut messages: Vec<[String; 2]>,
     tx_model: Sender<String>
     ) -> io::Result<usize>{
 
@@ -251,7 +251,8 @@ fn handle_model_available(
             for (i, message) in messages.iter().enumerate() {
                 
                 if message[0] == model {
-                    let msg = message.clone();
+                    //let msg = message.clone();
+                    let msg = messages.swap_remove(i);
                     println!("Debugs");
                     thread::spawn( move ||
                     match net::network::send_model_msg(rcv_key, msg[1].to_string(), stream, tx_model) {
@@ -474,7 +475,7 @@ async fn main() {
 
                                 match TcpStream::connect(&remote_server_ip){
                                     Ok(_) => {
-                                        tokio::spawn(async move { net::network::request_model_msg(remote_server_ip, model)});
+                                        let _ = tokio::spawn(async move { net::network::request_model_msg(remote_server_ip, model)}).await;
                                         //thread::spawn(move || net::network::request_model_msg(remote_server_ip, model));
                                     },
                                     Err(e) => {
@@ -590,6 +591,7 @@ async fn main() {
 async fn update_content(State(s_msg): State<Arc<Mutex<String>>>) -> Html<String> {
     
     let msg = s_msg.lock().await;
+    //println!("{}", msg);
     let h = Html(format!("<p> {} => length {} </p>", msg, msg.len()));    
     h
 }

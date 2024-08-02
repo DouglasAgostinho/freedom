@@ -452,12 +452,17 @@ pub mod network{
             let (model_msg, _) = client_read(model_stream.try_clone()?);
 
             msg_loop = model_msg.clone();
+            //msg_loop = model_msg.trim().to_string().clone();
 
             let crypt_msg = encrypt(shared_key, model_msg);
 
-            let crypt_ser = serde_json::to_string(&crypt_msg)?;
+            //let crypt_ser = serde_json::to_string(&crypt_msg)?;
+            let crypt_ser = BASE64_STANDARD.encode(crypt_msg);
 
-            let _ = client_write(client_stream.try_clone()?, crypt_ser);
+            match client_write(client_stream.try_clone()?, crypt_ser){
+                Ok(_) => (),
+                Err(e) => println!("Error found while sendind model msg => {}", e),
+            }
 
             //println!("SND -> msg => {}", msg_loop);
         }
@@ -502,12 +507,35 @@ pub mod network{
         income_stream.write_all(ser_crypt_msg.as_bytes())?;
 
         let mut msg_loop = EMPTY_STRING;
+        let mut ii = 0;
 
         while msg_loop != "!!!EMPTY_STRING!!!"{
 
             let (ser_crypt_msg, _) = client_read(income_stream.try_clone()?);
 
-            let crypt_msg: Vec<u8> = serde_json::from_str(&ser_crypt_msg)?;
+            //let crypt_msg: Vec<u8> = serde_json::from_str(&ser_crypt_msg).unwrap();
+
+            //println!("{:?}", ser_crypt_msg);
+            /*
+            let crypt_msg: Vec<u8> = match serde_json::from_str(&ser_crypt_msg){
+                Ok(v) => v,
+                Err(e) => {
+                    println!("err {}", e);
+                    continue
+                    
+                },
+            };
+             */
+            
+             
+             let crypt_msg: Vec<u8> = match BASE64_STANDARD.decode(ser_crypt_msg){
+                Ok(v) => v,
+                Err(e) => {
+                    println!("err {}", e);
+                    continue
+                    
+                },
+            };
 
             let model_msg = decrypt(shared_key, crypt_msg);
 
@@ -515,32 +543,52 @@ pub mod network{
 
             let msg_len = msg_loop.len();
 
+            
+
             if msg_len >= 18 {
                 msg_loop = String::from(&msg_loop[msg_len - 18 .. msg_len]);
             }
+
             
+                        
 
             //Print the code below to clean std out
             //println!("\x1B[2J\x1B[1;1H");
 
             //print!("{}", model_msg);      //Uses print! to not insert /n after each received data
             //print!("{}", msg_loop); 
+
+            let mmsg = model_msg.clone();
+            println!("match {}", ii);
+            println!("{}", mmsg);
+            
             match tx.send(model_msg){
-                Ok(t) => t,
+                Ok(t) => {
+                    print!("-->{}", mmsg);
+                    io::stdout().flush()?;
+                    ii += 1;
+                    t},
                 Err(e) => {
                     error!("Failed to send input to main thread => {}", e);
-                    break
+                    //break
                 }
             }
-
+            
+            
+            
+            
+            /*
+            
             // Ensure immediate output
             match io::stdout().flush(){
                 Ok(n) => n,
                 Err(e) => {
                     error!("Error while flushing Std output => {}", e);
-                    break
+                    //break
                 }
             }
+            
+             */
         }
 
         println!("{}", MAIN_MENU);
