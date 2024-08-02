@@ -21,8 +21,6 @@ use tracing::{span, info, error, Level, instrument};
 
 //use tokio_console::config_reference::ConsoleLayer;
 
-
-
 use axum::{
     extract::State, 
     response::{Html, IntoResponse}, 
@@ -312,11 +310,6 @@ async fn main() {
     let shared_model_message = Arc::new(Mutex::new(model_message));
     
 
-    //Instance of Block struct  
-    //let mut blocks: Block = Block{
-    //    message: Vec::from([[EMPTY_STRING; 3]])
-    //};
-
     //Instance of Node struct
     let mut my_node: Node = Node{address:EMPTY_STRING};
     my_node.address = my_node.gen_address();
@@ -326,10 +319,7 @@ async fn main() {
     //Initiate time measurement - for time triggered features
     let mut now = SystemTime::now();
 
-    //Spawn thread for handle local user interaction
-    //thread::spawn(move || {local_users(local_message_tx)});
     let input_t = tokio::task::spawn_blocking(move || {local_users(local_message_tx)});
-    //tokio::task::spawn_blocking(move || {local_users(local_message_tx)}).await.unwrap();
 
     //Shared variable for receive model (write) message and send to web server (read)
     let shared_model_msg = Arc::new(Mutex::new(String::new()));
@@ -344,8 +334,6 @@ async fn main() {
 
 
     let shared_blocks = Arc::new(Mutex::new(blocks));
-
-
 
     //----------------
 
@@ -377,7 +365,7 @@ async fn main() {
                 tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
             }
         }
-    });//.await.unwrap();
+    });
 
 
     //-------------------------------------------------
@@ -399,16 +387,8 @@ async fn main() {
         
         loop{
 
-
-            
-            //let net_msg: [String; 3] = handle_net_msg(&network_message_rx);
-
-            //let le_string = handle_thread_msg(&local_message_rx);
-
             // Check for new messages from the input thread
             message_buffer.push(handle_thread_msg(&local_message_rx));
-
-            
 
             if let Some(_) =  message_buffer.get(0){
 
@@ -522,23 +502,16 @@ async fn main() {
                 tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
             }
         }
-    });//.await.unwrap();
-
+    });
     
 
     let main_handle = tokio::spawn(async move { loop{
 
         
-
-        
         let arc_02_model_message = Arc::clone(&shared_model_message);
 
-        
         let arc_read_blocks = Arc::clone(&shared_blocks);
         
-        
-
-    
         let received_model_msg = le_model(&model_reply_rx);
 
         if received_model_msg != EMPTY_STRING{
@@ -591,16 +564,6 @@ async fn main() {
             },
             Err(e) => error!("Error {}", e),
         }
-
-
-        
-        
-
-        
-        
-        
-
-
         
         let a_model_message = arc_02_model_message.lock().unwrap();
         //let a_model_message = arc_02_model_message.lock().await;
@@ -618,18 +581,10 @@ async fn main() {
         } 
         thread::sleep(Duration::from_millis(1));
 
-        //let _ = tokio::join!(net_handle, local_handle);
-        //let _ = tokio::join!(local_handle);
-        //let _ = tokio::join!(net_handle);
-
     }});
 
     let handle_1 = tokio::spawn(async move {server(read_model_msg).await});
-    //tokio::spawn(async move {server(read_model_msg).await}).await.unwrap();
-    //let handle_1 = tokio::task::spawn(async move {server(read_model_msg)});
     
-    //let hhh = handle_1.await.unwrap();
-    //hhh.await;
     println!("End of main");
     let _ = tokio::join!(handle_1, input_t, main_handle, net_handle, local_handle);
 }
