@@ -12,6 +12,7 @@ mod crypt;
 
 use std::io; 
 use std::thread;
+use serde::Deserialize;
 use std::net::TcpStream;
 use block::{Block, Node};
 use net::network::{self, VERSION};
@@ -22,7 +23,8 @@ use tracing::{span, info, error, Level, instrument};
 //use tokio_console::config_reference::ConsoleLayer;
 
 use axum::{
-    extract::State, 
+    extract::State,
+    extract::Form,
     response::{Html, IntoResponse}, 
     routing::{get, get_service}, Router
 };
@@ -64,6 +66,20 @@ const LOG_PATH: &str = "./logs";
 
 //Own Static IP and PORT
 const MY_ADDRESS: &str = "192.168.191.3:6886";
+
+//Struc of Data from Web Server
+#[derive(Deserialize, Debug)] 
+struct FormData {
+    message: String,
+    model: String,
+    hidden_content: String,
+}
+
+#[derive(Clone)]
+struct AppState{
+    model_message: Arc<Mutex<String>>,
+    web_info: Arc<Mutex<Vec<FormData>>>,
+}
 
 #[instrument]
 fn get_input() -> String {
@@ -307,13 +323,16 @@ async fn main() {
     let model_message: Vec<[String; 2]> = Vec::from([[EMPTY_STRING; 2]]); 
 
     let shared_model_message = Arc::new(Mutex::new(model_message));
-    
 
+    let arc_net_write_model_message = Arc::clone(&shared_model_message);
+    
     //Instance of Node struct
     let mut my_node: Node = Node{address:EMPTY_STRING};
     my_node.address = my_node.gen_address();
 
     let shared_node = Arc::new(Mutex::new(my_node));
+
+    let arc_net_write_node = Arc::clone(&shared_node);
     
     //Initiate time measurement - for time triggered features
     let mut now = SystemTime::now();
@@ -322,29 +341,36 @@ async fn main() {
 
     //Shared variable for receive model (write) message and send to web server (read)
     let shared_model_msg = Arc::new(Mutex::new(String::new()));
-    let write_model_msg = Arc::clone(&shared_model_msg);
-    let read_model_msg = Arc::clone(&shared_model_msg);
+    let arc_write_model_msg = Arc::clone(&shared_model_msg);
+    let arc_read_model_msg = Arc::clone(&shared_model_msg);
 
+    //Web form struc and shared variable
+    let web_info = Vec::from([FormData{
+        message: EMPTY_STRING,
+        model: EMPTY_STRING,
+        hidden_content: EMPTY_STRING,
+    }]);
+
+    let shared_web_info = Arc::new(Mutex::new(web_info));
+    let arc_write_web_info = Arc::clone(&shared_web_info);
+    //let arc_read_web_info = Arc::clone(&shared_web_info);
+    let arc_net_rw_web_info = Arc::clone(&shared_web_info);
 
     //Shared Variable for Blocks write
     let blocks: Block = Block{
         message: Vec::from([[EMPTY_STRING; 3]])
     };
 
-
     let shared_blocks = Arc::new(Mutex::new(blocks));
-
-    //----------------
 
     let arc_net_write_blocks = Arc::clone(&shared_blocks);
 
-    let net_handle = tokio::spawn( async move{
-            
+    let net_handle = tokio::spawn( async move{            
         
         loop {
+
             // Check for new messages from the network thread
             let net_msg: [String; 3] = handle_net_msg(&network_message_rx);
-
             
             if net_msg[0] != EMPTY_STRING {
 
@@ -362,6 +388,29 @@ async fn main() {
                 //break;
                 tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
             }
+
+            let mut net_web_rw_info = arc_net_rw_web_info.lock().await;
+            
+            if net_web_rw_info.len() > 1 {
+
+                if net_web_rw_info[1].message != EMPTY_STRING {
+
+                    let net_write_node = arc_net_write_node.lock().await;
+                    let mut net_write_blocks = arc_net_write_blocks.lock().await;
+    
+                    let message: [String; 3] = [net_write_node.get_time_ns(), MY_ADDRESS.to_string(), net_web_rw_info[1].model.clone()];
+    
+                    net_write_blocks.insert(message.clone());
+    
+                    let mut net_write_model_message =  arc_net_write_model_message.lock().await;
+    
+                    net_write_model_message.push([net_web_rw_info[1].model.clone(), net_web_rw_info[1].message.clone()]);
+
+                    net_web_rw_info.swap_remove(1);
+    
+                }
+            }            
+            
         }
     });
 
@@ -515,7 +564,7 @@ async fn main() {
         if received_model_msg != EMPTY_STRING{
             let received_msg_len = received_model_msg.len();
             
-            let mut write_msg = write_model_msg.lock().await;
+            let mut write_msg = arc_write_model_msg.lock().await;
 
             if received_msg_len > 0{
                 write_msg.clone_from(&received_model_msg);
@@ -580,7 +629,13 @@ async fn main() {
 
     }});
 
-    let handle_1 = tokio::spawn(async move {server(read_model_msg).await});
+    let web_comm = AppState{
+        model_message: arc_read_model_msg,
+        web_info: arc_write_web_info,
+    };
+    
+    //let handle_1 = tokio::spawn(async move {server(arc_read_model_msg).await});
+    let handle_1 = tokio::spawn(async move {server(web_comm).await});
     
     println!("End of main");
     let _ = tokio::join!(handle_1, input_t, main_handle, net_handle, local_handle);
@@ -588,12 +643,37 @@ async fn main() {
 
 
 //Async functions
-async fn update_content(State(s_msg): State<Arc<Mutex<String>>>) -> Html<String> {
+async fn update_content(State(web): State<AppState>) -> Html<String> {
+    //async fn update_content(State(s_msg): State<Arc<Mutex<String>>>) -> Html<String> {
     
-    let msg = s_msg.lock().await;    
+    let msg = web.model_message.lock().await;    
     let h = Html(format!("<p> {} </p>", msg));
     h
 }
+
+
+//async fn submit_form(data: String) -> impl IntoResponse {
+async fn submit_form(State(arc_web): State<AppState>, Form(data): Form<FormData>) -> impl IntoResponse {
+    println!("Received message: {:?}", data);
+    println!("Received message: {}", data.message);
+    println!("Received message: {}", data.model);
+    println!("Received message: {}", data.hidden_content);   
+
+    let mut web = arc_web.web_info.lock().await;
+    
+    web.push(data);
+
+    //web.message = data.message;
+    //web.model = data.model;
+    //web.hidden_content = data.hidden_content; 
+
+    println!("Web info: {:?}", web);
+
+    //Html(format!("Received message: {:?}", data));
+    let file = tokio::fs::read_to_string("web/index.html").await.expect("Error while readin a file");
+    Html(file)
+}
+    
 
 async fn root() -> impl IntoResponse {
 
@@ -601,13 +681,16 @@ async fn root() -> impl IntoResponse {
     Html(file)
 }
 
-async fn server(msg: Arc<Mutex<String>>){
+async fn server(web_comm: AppState){
+    //async fn server(msg: Arc<Mutex<String>>){
 
     let app = Router::new()
     .route("/", get(root))
     .nest_service("/web", get_service(ServeDir::new("web")))
-    .route("/update", get(update_content))    
-    .with_state(msg);
+    .route("/update", get(update_content))
+    .route("/submit", axum::routing::post(submit_form))  
+    //.layer(Extension(web_comm));
+    .with_state(web_comm);
 
     let addr = "0.0.0.0:8680";
 

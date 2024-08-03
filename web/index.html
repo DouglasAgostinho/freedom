@@ -19,18 +19,19 @@
         </div>
                 
 
-        <div class="grid-item item2">
-            <form action="/submit" method="post">
+        <div class="grid-item item2">            
+            <form action="/submit" method="post" onsubmit="return setHiddenContentValue()">                     
                 <center>
                     <input type="radio" name="model" id="mistral" value="mistral">mistral
                     <input type="radio" name="model" id="llama_3" value="llama">llama 3
-                    <input type="radio" name="model" id="phi_3" value="phi"  checked="checked">local (phi 3)
+                    <input type="radio" name="model" id="phi_3" value="Phi 3"  checked="checked">local (phi 3)
                     <h1></h1> 
                 </center>
 
                 <center>
                         <!-- <input type="text" name="message" size="80" value="Insert your message here..."style="background-color: rgb(179, 172, 172);" /> -->
                         <input type="text" id="message" name="message" size="80" placeholder="Insert your message here..." />
+                        <input type="hidden" id="hidden_content" name="hidden_content" />                            
                         <input type="submit" id="submit_bt" name="submit_button" value="submit"/> 
                         <h1></h1> 
                         
@@ -45,6 +46,14 @@
 
 
     <script>
+
+        function setHiddenContentValue() {
+                    var contentValue = document.getElementById('content').innerText;
+                    document.getElementById('hidden_content').value = contentValue;
+                    console.log("Hidden content value set to: " + contentValue);
+                    return true;
+                }
+
         function updateContent() {
             fetch('/update')
                 .then(response => response.text())

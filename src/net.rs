@@ -37,16 +37,7 @@ pub mod network{
     //Message Code
     pub const TAIL_CODE: &str = "00000";
     pub const CODE_SIZE: usize = TAIL_CODE.len();
-
-    pub const MAIN_MENU: &str = 
-    "\n\n
-    Please select an option below. 
-    1 - Select model.              
-    2 - Check messages List.       
-    3 - Check message table.       
-    4 - Request message.           
-        -- Local model (to do) --    
-    ";
+    
     
     #[instrument]
     fn handle_message(
