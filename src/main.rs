@@ -65,7 +65,7 @@ const MINUTE: Duration = Duration::from_secs(10);
 const LOG_PATH: &str = "./logs";
 
 //Own Static IP and PORT
-const MY_ADDRESS: &str = "192.168.191.3:6886";
+const MY_ADDRESS: &str = "192.168.191.2:6886";
 
 //Struc of Data from Web Server
 #[derive(Deserialize, Debug)] 
