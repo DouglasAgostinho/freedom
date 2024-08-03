@@ -475,8 +475,10 @@ async fn main() {
 
                                 match TcpStream::connect(&remote_server_ip){
                                     Ok(_) => {
-                                        let _ = tokio::spawn(async move { net::network::request_model_msg(remote_server_ip, model)}).await;
+                                        //let _ = tokio::spawn(async move { net::network::request_model_msg(remote_server_ip, model)}).await;
                                         //thread::spawn(move || net::network::request_model_msg(remote_server_ip, model));
+                                        //tokio::task::spawn_blocking(async move { });
+                                        tokio::task::spawn_blocking(move || {net::network::request_model_msg(remote_server_ip, model)});
                                     },
                                     Err(e) => {
                                         println!("Server not available, try later!");
