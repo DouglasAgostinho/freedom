@@ -63,7 +63,7 @@ const MINUTE: Duration = Duration::from_secs(10);
 const LOG_PATH: &str = "./logs";
 
 //Own Static IP and PORT
-const MY_ADDRESS: &str = "192.168.191.2:6886";
+const MY_ADDRESS: &str = "192.168.191.3:6886";
 
 #[instrument]
 fn get_input() -> String {
@@ -250,10 +250,8 @@ fn handle_model_available(
             
             for (i, message) in messages.iter().enumerate() {
                 
-                if message[0] == model {
-                    //let msg = message.clone();
-                    let msg = messages.swap_remove(i);
-                    println!("Debugs");
+                if message[0] == model {                    
+                    let msg = messages.swap_remove(i);                    
                     thread::spawn( move ||
                     match net::network::send_model_msg(rcv_key, msg[1].to_string(), stream, tx_model) {
                         Ok(n) => {n},
@@ -592,9 +590,8 @@ async fn main() {
 //Async functions
 async fn update_content(State(s_msg): State<Arc<Mutex<String>>>) -> Html<String> {
     
-    let msg = s_msg.lock().await;
-    //println!("{}", msg);
-    let h = Html(format!("<p> {} => length {} </p>", msg, msg.len()));    
+    let msg = s_msg.lock().await;    
+    let h = Html(format!("<p> {} </p>", msg));
     h
 }
 

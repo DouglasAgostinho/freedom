@@ -375,8 +375,6 @@ pub mod network{
             }
         };
 
-        println!("Bytes read => {}, from => {:?}", bytes_read, stream);
-
         let received: String = if bytes_read != 0 {
             String::from_utf8_lossy(&buf[..bytes_read]).to_string()
         }
@@ -448,41 +446,22 @@ pub mod network{
         // Send data to the server
         let model_stream = client_write(model_stream, msg)?;
 
-        let mut msg_loop = EMPTY_STRING;
-
-        //let mut last_lenght: usize = BUFF;
-
-        while msg_loop != "!!!EMPTY_STRING!!!"{
+        loop{            
 
             let (model_msg, _) = client_read(model_stream.try_clone()?);
 
             if model_msg == "!!!EMPTY_STRING!!!".to_string() {
                 break;
-            }
-
-            //if model_msg.len() < last_lenght{
-
-                msg_loop = model_msg.clone();
-                //msg_loop = model_msg.trim().to_string().clone();
-                //let mmmmmsg = "douglas".to_string();
-                let crypt_msg = encrypt(shared_key, model_msg.clone());
-                //let crypt_msg = encrypt(shared_key, mmmmmsg);
-
-                //let crypt_ser = serde_json::to_string(&crypt_msg)?;
-                let crypt_ser = BASE64_STANDARD.encode(crypt_msg);
-
-                match client_write(client_stream.try_clone()?, crypt_ser){
-                    Ok(_) => (),
-                    Err(e) => println!("Error found while sendind model msg => {}", e),
-                }
-
-
-            //}
-
-            //last_lenght = model_msg.len();
+            }        
             
+            let crypt_msg = encrypt(shared_key, model_msg.clone());
 
-            //println!("SND -> msg => {}", msg_loop);
+            let crypt_ser = BASE64_STANDARD.encode(crypt_msg);
+
+            match client_write(client_stream.try_clone()?, crypt_ser){
+                Ok(_) => (),
+                Err(e) => println!("Error found while sendind model msg => {}", e),
+            }
         }
 
         Ok(EMPTY_STRING)
@@ -524,14 +503,9 @@ pub mod network{
         //Repply to client serialized message
         income_stream.write_all(ser_crypt_msg.as_bytes())?;
 
-        let mut msg_loop = EMPTY_STRING;
-        //let mut ii = 0;
-
-        //let mut last_lenght: usize = BUFF;
-
         let mut model_message = EMPTY_STRING;
         
-        while msg_loop != "!!!EMPTY_STRING!!!"{
+        loop{            
 
             let (ser_crypt_msg, _) = client_read(income_stream.try_clone()?);
 
@@ -539,11 +513,7 @@ pub mod network{
                 break;
             }
 
-            //let crypt_msg: Vec<u8> = serde_json::from_str(&ser_crypt_msg).unwrap();
-
-            //println!("{:?}", ser_crypt_msg);
-            /*
-            let crypt_msg: Vec<u8> = match serde_json::from_str(&ser_crypt_msg){
+            let crypt_msg: Vec<u8> = match BASE64_STANDARD.decode(ser_crypt_msg.clone()){
                 Ok(v) => v,
                 Err(e) => {
                     println!("err {}", e);
@@ -551,60 +521,22 @@ pub mod network{
                     
                 },
             };
-             */
-            
-             //if ser_crypt_msg.len() < last_lenght{
 
-                let crypt_msg: Vec<u8> = match BASE64_STANDARD.decode(ser_crypt_msg.clone()){
-                    Ok(v) => v,
-                    Err(e) => {
-                        println!("err {}", e);
-                        continue
+            let model_msg = decrypt(shared_key, crypt_msg);
+
+            model_message.push_str(&model_msg);
+
                         
-                    },
-                };
-    
-                let model_msg = decrypt(shared_key, crypt_msg);
-
-                model_message.push_str(&model_msg);
-
-                println!("mm => {}", model_message);
-    
-                msg_loop = model_msg.clone();
-    
-                let msg_len = msg_loop.len();
-    
-                
-    
-                if msg_len >= 18 {
-                    msg_loop = String::from(&msg_loop[msg_len - 18 .. msg_len]);
+            match tx.send(model_message.clone()){            
+                Ok(t) => {
+                    t},
+                Err(e) => {
+                    error!("Failed to send input to main thread => {}", e);            
                 }
-    
-                
-                            
-                match tx.send(model_message.clone()){
-                //match tx.send(model_msg){
-                    Ok(t) => {
-                        t},
-                    Err(e) => {
-                        error!("Failed to send input to main thread => {}", e);
-                        //break
-                    }
-                }
-
-
-             //}
-
-             //last_lenght = ser_crypt_msg.len();
-
-             
-            
-            
-            
-            
+            }
         }
 
-        println!("{}", MAIN_MENU);
+        //println!("{}", MAIN_MENU);
 
         Ok(EMPTY_STRING)
     }
