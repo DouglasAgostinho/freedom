@@ -1,7 +1,16 @@
 
 /*
     This program is intended to be a place where all users can present their own models
-    or integrate a pool of models for ...
+    or integrate a pool of models for research purposes
+
+    It will consist of:
+    - Network module that will manage the message communication between peers;
+    - Crypt module that will handle the message encryption between peers;
+    - Block where most structs will be built;
+    - Web server to handle User interaction (external / internal);
+    - Main loop:
+        - handle the messages from network / web / local CLI
+        - control communication with available models & peers
 */
 
 //Modules declaration
@@ -23,13 +32,13 @@ use tracing::{span, info, error, Level, instrument};
 //use tokio_console::config_reference::ConsoleLayer;
 
 use axum::{
-    extract::State,
-    extract::Form,
+    extract::State, //to share variables between routes
+    extract::Form,  //to get values from post method on web page
     response::{Html, IntoResponse}, 
-    routing::{get, get_service}, Router
+    routing::{get, get_service}, Router 
 };
 
-use tower_http::services::ServeDir;
+use tower_http::services::ServeDir; //Aux functions for AXUM server
 use tokio::sync::Mutex;
 use std::sync::Arc;
 
@@ -75,12 +84,14 @@ struct FormData {
     hidden_content: String,
 }
 
+//Struct of variables that will be shared with the web routes (pages)
 #[derive(Clone)]
 struct AppState{
     model_message: Arc<Mutex<String>>,
     web_info: Arc<Mutex<Vec<FormData>>>,
 }
 
+//Get user input from std in and return it
 #[instrument]
 fn get_input() -> String {
     
@@ -93,6 +104,13 @@ fn get_input() -> String {
     user_input.trim().to_string()
 }
 
+
+// Present a CLI based menu and get user selection
+//
+// If option (1): 
+//  - get the user input as message to be sent to model
+//  - get selected model and return a tuple (model, message) 
+//
 #[instrument]
 fn prog_control() -> (u8, (String, String)) {
 
@@ -101,8 +119,7 @@ fn prog_control() -> (u8, (String, String)) {
     println!("{}", MAIN_MENU);
 
     //Variable to receive user input
-    let user_input = get_input();
-    
+    let user_input = get_input();    
 
     let u_sel: u8;
 
@@ -160,20 +177,23 @@ fn prog_control() -> (u8, (String, String)) {
 
 
 #[instrument]
-fn local_users(tx: Sender<String>){
+fn local_users(tx: Sender<(u8, (String, String))>){
+    //fn local_users(tx: Sender<String>){
 
     loop {
 
-        let (action_menu, model_and_message) = prog_control(); 
+        //let (action_menu, model_and_message) = prog_control(); 
+        let ser_menu = prog_control(); 
         
-        let mut ser_menu = serde_json::to_string(&model_and_message).expect("error");
+        //let mut ser_menu = serde_json::to_string(&model_and_message).expect("error");
 
-        if action_menu == 0 {
+        if ser_menu.0 == 0 {
+            //if action_menu == 0 {
             println!("Please select a valid option !");
         }
         else {
-            ser_menu.push_str(&action_menu.to_string());
-            println!("Ser menu => {:?}", ser_menu);
+            //ser_menu.push_str(&action_menu.to_string());
+            //println!("Ser menu => {:?}", ser_menu);
 
             match tx.send(ser_menu){
                 Ok(t) => t,
@@ -188,7 +208,8 @@ fn local_users(tx: Sender<String>){
 
 
 #[instrument] //Tracing auto span generation
-fn handle_thread_msg(message_receiver: &Receiver<String>) -> String{
+fn handle_thread_msg(message_receiver: &Receiver<(u8, (String, String))>) -> (u8, (String, String)){
+    //fn handle_thread_msg(message_receiver: &Receiver<String>) -> String{
 
     match message_receiver.try_recv() {
         Ok(msg) => {
@@ -198,11 +219,11 @@ fn handle_thread_msg(message_receiver: &Receiver<String>) -> String{
         },
         Err(mpsc::TryRecvError::Empty) => {
             // No input received, return Empty String 
-            EMPTY_STRING
+            (0, (EMPTY_STRING, EMPTY_STRING))
         }
         Err(mpsc::TryRecvError::Disconnected) => {
             error!("Input thread has disconnected.");
-            EMPTY_STRING
+            (0, (EMPTY_STRING, EMPTY_STRING))
         }
     }
 }
@@ -427,31 +448,34 @@ async fn main() {
     let local_handle = tokio::spawn( async move{
 
         //Buffer to store received messages
-        let mut message_buffer: Vec<String> = Vec::new();
+        //let mut message_buffer: Vec<String> = Vec::new();
 
-        let mut user_msg: String = String::new();
+        //let mut user_msg: String = String::new();
 
         
         loop{
 
             // Check for new messages from the input thread
-            message_buffer.push(handle_thread_msg(&local_message_rx));
+            //message_buffer.push(handle_thread_msg(&local_message_rx));
+            let msg_buff = handle_thread_msg(&local_message_rx);
 
-            if let Some(_) =  message_buffer.get(0){
+            //if let Some(_) =  message_buffer.get(0){
 
-                user_msg = message_buffer.swap_remove(0);
-            }
+              //  user_msg = message_buffer.swap_remove(0);
+            //}
 
-            
-            if user_msg != EMPTY_STRING {
+            //println!("msg_buff => {:?}", msg_buff);
+            if msg_buff.0 != 0 {
+                //if user_msg != EMPTY_STRING {
 
-                let msg_len = user_msg.len();
-                let code = &user_msg[msg_len -1 .. msg_len];  
+                //let msg_len = user_msg.len();
+                //let code = &user_msg[msg_len -1 .. msg_len];  
 
-                
-                match  code {
+                println!("msg_buff => {:?}", msg_buff);
+                match  msg_buff.0 {
+                    //match  code {
 
-                    "1" => {
+                    1 => { //"1" => {
 
                         let mut local_write_blocks = arc_local_write_blocks.lock().await;
                         
@@ -459,14 +483,16 @@ async fn main() {
                         
                         let write_node = arc_write_node.lock().await;
 
-                        let ser_message = user_msg[ .. msg_len -1].to_string();
+                        //let ser_message = user_msg[ .. msg_len -1].to_string();
 
-                        let (selected_model, model_msg): (String, String) = serde_json::from_str(&ser_message).expect("error");
+                        //let (selected_model, model_msg): (String, String) = serde_json::from_str(&ser_message).expect("error");
 
-                        write_model_message.push([selected_model.clone(), model_msg.clone()]);
+                        //write_model_message.push([selected_model.clone(), model_msg.clone()]);
+                        write_model_message.push([msg_buff.1.0.clone(), msg_buff.1.1.clone()]);
 
                         //Organize data to fit in the message format [current time, address, message text]
-                        let message: [String; 3] = [write_node.get_time_ns(), MY_ADDRESS.to_string(), String::from(selected_model.trim())];
+                        let message: [String; 3] = [write_node.get_time_ns(), MY_ADDRESS.to_string(), String::from(msg_buff.1.0.trim())];
+                        //let message: [String; 3] = [write_node.get_time_ns(), MY_ADDRESS.to_string(), String::from(selected_model.trim())];
 
                         
                         //Call insert function to format and store in a block section
@@ -474,8 +500,8 @@ async fn main() {
 
                     },
 
-                    "2" => {
-                        println!("\x1B[2J\x1B[1;1H");
+                    2 => { //"2" => {
+                        //println!("\x1B[2J\x1B[1;1H");
                         
                         let write_model_message = arc_write_model_message.lock().await;
                         println!("-----------------------------");
@@ -486,9 +512,9 @@ async fn main() {
                         println!("{}", MAIN_MENU);
                     },
 
-                    "3" => {
+                    3 => { //"3" => {
 
-                        println!("\x1B[2J\x1B[1;1H");
+                        //println!("\x1B[2J\x1B[1;1H");
                         
                         let local_write_blocks = arc_local_write_blocks.lock().await;
                         println!("-----------------------------");
@@ -499,7 +525,7 @@ async fn main() {
                         println!("{}", MAIN_MENU);
                     }
 
-                    "4" => {
+                    4 => { //"4" => {
 
                         println!("\x1B[2J\x1B[1;1H");
 
