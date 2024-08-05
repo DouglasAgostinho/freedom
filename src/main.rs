@@ -59,7 +59,7 @@ const MAIN_MENU: &str =
 "\n\n
     Please select an option below. 
     1 - Select model.              
-    2 - Check messages List.       
+    2 - Check own messages List.
     3 - Check message table.       
     4 - Request message.           
         -- Local model (to do) --    

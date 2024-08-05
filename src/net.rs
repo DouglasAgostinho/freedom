@@ -82,6 +82,8 @@ pub mod network{
                                 //let snd_model_msg = ser_msg.to_string();
                                 let snd_model_msg = message.message;
 
+                                println!("{}", snd_model_msg);
+                                
                                 if snd_model_msg != EMPTY_STRING {
 
                                     //Send net message to main thread
@@ -403,10 +405,10 @@ pub mod network{
 
         let to_snd_msg = (s_pb_key, model);
 
-        let mut ser_snd_msg = serde_json::to_string(&to_snd_msg)?;
+        let ser_snd_msg = serde_json::to_string(&to_snd_msg)?;
 
-        ser_snd_msg.push_str("####1");    //####1 - code for encryption handshake
-        ser_snd_msg.push_str(VERSION);    //Insert software version in message tail
+        //ser_snd_msg.push_str("####1");    //####1 - code for encryption handshake
+        //ser_snd_msg.push_str(VERSION);    //Insert software version in message tail
 
         let net_msg = NetWorkMessage{
             version: VERSION.to_string(),
