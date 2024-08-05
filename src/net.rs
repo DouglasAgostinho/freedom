@@ -8,6 +8,7 @@ pub mod network{
 
     use std::thread;
     use base64::prelude::*;
+    use crate::block::NetWorkMessage;
     use std::sync::mpsc::Sender;    
     use std::io::{self, Read, Write}; 
     use std::net::{TcpListener, TcpStream};    
@@ -32,11 +33,11 @@ pub mod network{
 
     //Software version
     pub const VERSION: &str = "000_01";
-    pub const VER_SIZE: usize = VERSION.len();
+    //pub const VER_SIZE: usize = VERSION.len();
 
     //Message Code
-    pub const TAIL_CODE: &str = "00000";
-    pub const CODE_SIZE: usize = TAIL_CODE.len();
+    //pub const TAIL_CODE: &str = "00000";
+    //pub const CODE_SIZE: usize = TAIL_CODE.len();
     
     
     #[instrument]
@@ -48,31 +49,38 @@ pub mod network{
         model_tx: Sender<(TcpStream, String)>) -> bool {
 
         //Function to treat incoming / outgoing messages
-        let msg_len = message.len();
+        //let msg_len = message.len();
 
-        let ser_msg = &message[ .. msg_len - CODE_SIZE - VER_SIZE];
+        //let ser_msg = &message[ .. msg_len - CODE_SIZE - VER_SIZE];
+
+        let message: NetWorkMessage = serde_json::from_str(message).unwrap();
+
+        let msg = "abc";
 
         match mode {
 
             "send" => {false},
 
             "receive" => {
-                let msg = message.trim();
+                //let msg = message.trim();
 
                 match msg {
 
                     "[!]_stream_[!]" => true,
 
                     _ => {
-                        info!("Received: {}", message);
+                        //info!("Received: {}", message);
 
-                        let msg_code = &message[msg_len - CODE_SIZE - VER_SIZE .. msg_len - VER_SIZE];
+                        //let msg_code = &message[msg_len - CODE_SIZE - VER_SIZE .. msg_len - VER_SIZE];
+                        let msg_code = &message.code[..];
+                        
 
                         match msg_code {
 
                             "####1" => {
                                 
-                                let snd_model_msg = ser_msg.to_string();
+                                //let snd_model_msg = ser_msg.to_string();
+                                let snd_model_msg = message.message;
 
                                 if snd_model_msg != EMPTY_STRING {
 
@@ -98,7 +106,7 @@ pub mod network{
                             "00000" => println!("Message -> {}", msg),
 
                             "00001" => { //Block received
-                                let mut net_message :Vec<[String; 3]> = match serde_json::from_str(ser_msg){
+                                let mut net_message :Vec<[String; 3]> = match serde_json::from_str(&message.message){
 
                                     Ok(msg) => msg,
                                     Err(e) => {
@@ -141,7 +149,7 @@ pub mod network{
             },
 
             "test" => {
-                println!("Received: {}", message);
+                //println!("Received: {}", message);
                 false
             },
 
@@ -193,7 +201,7 @@ pub mod network{
             };
 
             if handle_message(&received.to_string(), "receive", snd, income_stream, model_snd) {
-
+/* 
                 //Repply to client that server is ready to receive stream
                 match stream.write_all("ready_to_receive".as_bytes()){
                     Ok(s) => s,
@@ -231,7 +239,7 @@ pub mod network{
                             break;
                         }
                     }
-                }
+                }*/
             }
             else {
                 info!("Connection closed by server");
@@ -400,10 +408,20 @@ pub mod network{
         ser_snd_msg.push_str("####1");    //####1 - code for encryption handshake
         ser_snd_msg.push_str(VERSION);    //Insert software version in message tail
 
+        let net_msg = NetWorkMessage{
+            version: VERSION.to_string(),
+            time: EMPTY_STRING,
+            message:ser_snd_msg,
+            address: EMPTY_STRING,
+            code: "####1".to_string(),
+        };
+
+        let ser_snd_net_msg = serde_json::to_string(&net_msg)?;
         
         let client_stream = client_connect(dest_ip)?;
         
-        let client_stream = client_write(client_stream, ser_snd_msg)?;
+        //let client_stream = client_write(client_stream, ser_snd_msg)?;
+        let client_stream = client_write(client_stream, ser_snd_net_msg)?;
         
         let (ser_crypto, client_stream) = client_read(client_stream);
 

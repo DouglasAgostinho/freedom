@@ -21,6 +21,7 @@ mod crypt;
 
 use std::io; 
 use std::thread;
+use block::NetWorkMessage;
 use serde::Deserialize;
 use std::net::TcpStream;
 use block::{Block, Node};
@@ -353,7 +354,11 @@ async fn main() {
 
     let shared_node = Arc::new(Mutex::new(my_node));
 
+    let arc_write_node = Arc::clone(&shared_node);
+
     let arc_net_write_node = Arc::clone(&shared_node);
+
+    let arc_to_net_read_node = Arc::clone(&shared_node);
     
     //Initiate time measurement - for time triggered features
     let mut now = SystemTime::now();
@@ -385,6 +390,8 @@ async fn main() {
     let shared_blocks = Arc::new(Mutex::new(blocks));
 
     let arc_net_write_blocks = Arc::clone(&shared_blocks);
+
+    let arc_local_write_blocks = Arc::clone(&shared_blocks);
 
     let net_handle = tokio::spawn( async move{            
         
@@ -439,11 +446,11 @@ async fn main() {
     //-------------------------------------------------
 
 
-    let arc_local_write_blocks = Arc::clone(&shared_blocks);
+    
 
     let arc_write_model_message = Arc::clone(&shared_model_message);
 
-    let arc_write_node = Arc::clone(&shared_node);
+    
 
     let local_handle = tokio::spawn( async move{
 
@@ -606,7 +613,7 @@ async fn main() {
                 if n >= MINUTE{
                     info!("One minute");
 
-                    let msg = {
+                    /*let msg = {
 
                         let read_blocks = arc_read_blocks.lock().await;
 
@@ -625,8 +632,22 @@ async fn main() {
                         let msg = message.clone();
 
                         msg
+                    };*/
+
+                    let read_blocks = arc_read_blocks.lock().await;
+                    let to_net_read_node = arc_to_net_read_node.lock().await;
+
+                    let block_message = serde_json::to_string(&read_blocks.message).unwrap();
+
+                    let net_msg = NetWorkMessage{
+                        version: VERSION.to_string(),
+                        time: to_net_read_node.get_time_ns(),
+                        message: block_message,
+                        address: to_net_read_node.gen_address(),
+                        code: "00001".to_string(),
                     };
-                    
+
+                    let msg = serde_json::to_string(&net_msg).unwrap();
 
                     //Spawn thread to propagate listening port to all network
                     tokio::spawn( async move {network::to_net(msg)});

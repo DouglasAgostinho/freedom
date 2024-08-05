@@ -7,11 +7,11 @@ use std::time::{SystemTime,UNIX_EPOCH};
 
 #[derive(Serialize, Deserialize)]
 pub struct NetWorkMessage {
-    version:    String,
-    time:       String,
-    message:    String,
-    address:    String,
-    code:       String,        
+    pub version:    String,
+    pub time:       String,
+    pub message:    String,
+    pub address:    String,
+    pub code:       String,        
 }
 
 //#[derive(Clone)]
