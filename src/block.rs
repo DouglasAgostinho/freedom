@@ -3,7 +3,8 @@ use sha2::{Digest, Sha512};
 use serde::{Deserialize, Serialize};   
 use std::time::{SystemTime,UNIX_EPOCH};
 
-
+//to use in String based variables
+const EMPTY_STRING: String = String::new();
 
 #[derive(Serialize, Deserialize)]
 pub struct NetWorkMessage {
@@ -12,6 +13,20 @@ pub struct NetWorkMessage {
     pub message:    String,
     pub address:    String,
     pub code:       String,        
+}
+impl NetWorkMessage {
+
+    pub fn new() -> NetWorkMessage{
+        NetWorkMessage{
+            version: EMPTY_STRING,
+            time: EMPTY_STRING,
+            message: EMPTY_STRING,
+            address: EMPTY_STRING,
+            code: EMPTY_STRING,
+        }
+
+    }
+    
 }
 
 //#[derive(Clone)]

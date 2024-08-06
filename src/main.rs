@@ -57,12 +57,12 @@ const GREETINGS: &str =
 
 const MAIN_MENU: &str = 
 "\n\n
-    Please select an option below. 
-    1 - Select model.              
+    Please select an option below.
+    1 - Select model.
     2 - Check own messages List.
-    3 - Check message table.       
-    4 - Request message.           
-        -- Local model (to do) --    
+    3 - Check message table.
+    4 - Request message.
+        -- Local model (to do) --
 ";
 
 //Constant to use in String based variables
@@ -120,7 +120,7 @@ fn prog_control() -> (u8, (String, String)) {
     println!("{}", MAIN_MENU);
 
     //Variable to receive user input
-    let user_input = get_input();    
+    let user_input = get_input();
 
     let u_sel: u8;
 
@@ -129,8 +129,8 @@ fn prog_control() -> (u8, (String, String)) {
         "1" => {
 
             u_sel = 1;
-            
-            println!("Please select an option below.");            
+
+            println!("Please select an option below.");
             println!("1 - llama 3.");
             println!("2 - Phi 3.");
             println!("3 - Mistral");
@@ -142,12 +142,11 @@ fn prog_control() -> (u8, (String, String)) {
                 "1" => "llama 3",
                 "2" => "Phi 3",
                 "3" => "Mistral",
-                _ => "",                
-            };   
+                _ => "",
+            };
 
             println!("Now, please insert your message");
             let user_input = get_input();
-            
 
             (model.to_string(), user_input)
         },
@@ -185,7 +184,7 @@ fn local_users(tx: Sender<(u8, (String, String))>){
 
         //let (action_menu, model_and_message) = prog_control(); 
         let ser_menu = prog_control(); 
-        
+
         //let mut ser_menu = serde_json::to_string(&model_and_message).expect("error");
 
         if ser_menu.0 == 0 {
@@ -202,9 +201,9 @@ fn local_users(tx: Sender<(u8, (String, String))>){
                     error!("Failed to send input to main thread => {}", e);
                     break
                 }
-            }            
+            }
         }
-    }  
+    }
 }
 
 
@@ -256,12 +255,12 @@ fn le_model (model_rx: &Receiver<String>) -> String{
                 //Return input received
                 info!("Received input: {:?}", msg);
                 msg
-                
+
             },
             Err(mpsc::TryRecvError::Empty) => {
                 // No input received, return Empty String 
                 EMPTY_STRING
-                
+
             }
             Err(mpsc::TryRecvError::Disconnected) => {
                 error!("Input thread has disconnected.");
@@ -279,17 +278,17 @@ fn handle_model_available(
     ) -> io::Result<usize>{
 
     match model_receiver.try_recv() {
-        
+
         Ok((stream, ser_msg)) => {
 
             let msg: (String, String) = serde_json::from_str(&ser_msg)?;
 
             let (rcv_key, model) = msg;
-            
+
             for (i, message) in messages.iter().enumerate() {
-                
-                if message[0] == model {                    
-                    let msg = messages.swap_remove(i);                    
+
+                if message[0] == model {
+                    let msg = messages.swap_remove(i);
                     thread::spawn( move ||
                     match net::network::send_model_msg(rcv_key, msg[1].to_string(), stream, tx_model) {
                         Ok(n) => {n},
@@ -300,18 +299,18 @@ fn handle_model_available(
                     });
                     return Ok(i);
                 }
-            }   
+            }
             Ok(0)
         },
         Err(mpsc::TryRecvError::Empty) => {
             Ok(0)
         }
         Err(mpsc::TryRecvError::Disconnected) => {
-            
+
             Err(io::Error::new(io::ErrorKind::BrokenPipe, "Input thread has disconnected!"))
         }
     }
-     
+
 }
 
 #[tokio::main]
@@ -399,7 +398,7 @@ async fn main() {
 
             // Check for new messages from the network thread
             let net_msg: [String; 3] = handle_net_msg(&network_message_rx);
-            
+
             if net_msg[0] != EMPTY_STRING {
 
                 let mut net_write_blocks = arc_net_write_blocks.lock().await;
@@ -418,7 +417,7 @@ async fn main() {
             }
 
             let mut net_web_rw_info = arc_net_rw_web_info.lock().await;
-            
+
             if net_web_rw_info.len() > 1 {
 
                 if net_web_rw_info[1].message != EMPTY_STRING {
@@ -427,88 +426,56 @@ async fn main() {
                     let mut net_write_blocks = arc_net_write_blocks.lock().await;
     
                     let message: [String; 3] = [net_write_node.get_time_ns(), MY_ADDRESS.to_string(), net_web_rw_info[1].model.clone()];
-    
+
                     net_write_blocks.insert(message.clone());
-    
+
                     let mut net_write_model_message =  arc_net_write_model_message.lock().await;
-    
+
                     net_write_model_message.push([net_web_rw_info[1].model.clone(), net_web_rw_info[1].message.clone()]);
 
                     net_web_rw_info.swap_remove(1);
     
                 }
-            }            
-            
+            }
+
         }
     });
 
-
-    //-------------------------------------------------
-
-
-    
-
     let arc_write_model_message = Arc::clone(&shared_model_message);
 
-    
 
     let local_handle = tokio::spawn( async move{
 
-        //Buffer to store received messages
-        //let mut message_buffer: Vec<String> = Vec::new();
-
-        //let mut user_msg: String = String::new();
-
-        
         loop{
 
             // Check for new messages from the input thread
-            //message_buffer.push(handle_thread_msg(&local_message_rx));
-            let msg_buff = handle_thread_msg(&local_message_rx);
 
-            //if let Some(_) =  message_buffer.get(0){
+            let (selection, (model, msg)) = handle_thread_msg(&local_message_rx);
 
-              //  user_msg = message_buffer.swap_remove(0);
-            //}
+            if selection != 0 {
 
-            //println!("msg_buff => {:?}", msg_buff);
-            if msg_buff.0 != 0 {
-                //if user_msg != EMPTY_STRING {
-
-                //let msg_len = user_msg.len();
-                //let code = &user_msg[msg_len -1 .. msg_len];  
-
-                println!("msg_buff => {:?}", msg_buff);
-                match  msg_buff.0 {
-                    //match  code {
+                match  selection {
 
                     1 => { //"1" => {
 
                         let mut local_write_blocks = arc_local_write_blocks.lock().await;
-                        
+
                         let mut write_model_message = arc_write_model_message.lock().await;
-                        
+
                         let write_node = arc_write_node.lock().await;
 
-                        //let ser_message = user_msg[ .. msg_len -1].to_string();
-
-                        //let (selected_model, model_msg): (String, String) = serde_json::from_str(&ser_message).expect("error");
-
-                        //write_model_message.push([selected_model.clone(), model_msg.clone()]);
-                        write_model_message.push([msg_buff.1.0.clone(), msg_buff.1.1.clone()]);
+                        write_model_message.push([model.clone(), msg.clone()]);
 
                         //Organize data to fit in the message format [current time, address, message text]
-                        let message: [String; 3] = [write_node.get_time_ns(), MY_ADDRESS.to_string(), String::from(msg_buff.1.0.trim())];
-                        //let message: [String; 3] = [write_node.get_time_ns(), MY_ADDRESS.to_string(), String::from(selected_model.trim())];
+                        let message: [String; 3] = [write_node.get_time_ns(), MY_ADDRESS.to_string(), String::from(model.trim())];
 
-                        
                         //Call insert function to format and store in a block section
                         local_write_blocks.insert(message.clone());
 
                     },
 
                     2 => { //"2" => {
-                        //println!("\x1B[2J\x1B[1;1H");
+                        println!("\x1B[2J\x1B[1;1H");
                         
                         let write_model_message = arc_write_model_message.lock().await;
                         println!("-----------------------------");
@@ -521,7 +488,7 @@ async fn main() {
 
                     3 => { //"3" => {
 
-                        //println!("\x1B[2J\x1B[1;1H");
+                        println!("\x1B[2J\x1B[1;1H");
                         
                         let local_write_blocks = arc_local_write_blocks.lock().await;
                         println!("-----------------------------");
@@ -536,6 +503,7 @@ async fn main() {
 
                         println!("\x1B[2J\x1B[1;1H");
 
+                        println!("Debug");
                         let owned_model = "Phi 3".to_string();
                         let local_write_blocks = {
                             let blocks = arc_local_write_blocks.lock().await;
@@ -544,9 +512,8 @@ async fn main() {
 
                             bb
                         };
-                        
+
                         for msg in local_write_blocks.iter(){
-                            //for msg in local_write_blocks.message.iter(){
 
                             if msg[2] == owned_model{
 
@@ -555,9 +522,7 @@ async fn main() {
 
                                 match TcpStream::connect(&remote_server_ip){
                                     Ok(_) => {
-                                        //let _ = tokio::spawn(async move { net::network::request_model_msg(remote_server_ip, model)}).await;
-                                        //thread::spawn(move || net::network::request_model_msg(remote_server_ip, model));
-                                        //tokio::task::spawn_blocking(async move { });
+
                                         tokio::task::spawn_blocking(move || {net::network::request_model_msg(remote_server_ip, model)});
                                     },
                                     Err(e) => {
@@ -574,37 +539,33 @@ async fn main() {
 
                         println!("{}", MAIN_MENU);
                     }
-                    _ => (),                    
+                    _ => (),
                 }
             }
             else {
-                //break;
                 tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
             }
         }
     });
-    
 
     let main_handle = tokio::spawn(async move { loop{
 
-        
         let arc_02_model_message = Arc::clone(&shared_model_message);
 
         let arc_read_blocks = Arc::clone(&shared_blocks);
-        
+
         let received_model_msg = le_model(&model_reply_rx);
 
         if received_model_msg != EMPTY_STRING{
             let received_msg_len = received_model_msg.len();
-            
+
             let mut write_msg = arc_write_model_msg.lock().await;
 
             if received_msg_len > 0{
                 write_msg.clone_from(&received_model_msg);
             }
         }
-            
-                
+
 
         //Control of time triggered features
         match now.elapsed(){
@@ -612,27 +573,6 @@ async fn main() {
             Ok(n) => {
                 if n >= MINUTE{
                     info!("One minute");
-
-                    /*let msg = {
-
-                        let read_blocks = arc_read_blocks.lock().await;
-
-                        //Propagate message block
-                        let mut message = match serde_json::to_string(&read_blocks.message){
-                            //let mut message = match serde_json::to_string(&blocks.message){
-                            Ok(msg) => msg,
-                            Err(e) => {
-                                error!("Error while serializing Block propagation message {}", e);
-                                EMPTY_STRING
-                            },
-                        };
-                        message.push_str("00001");    //00001 - code for block propagation (check message code table)
-                        message.push_str(VERSION);
-
-                        let msg = message.clone();
-
-                        msg
-                    };*/
 
                     let read_blocks = arc_read_blocks.lock().await;
                     let to_net_read_node = arc_to_net_read_node.lock().await;
@@ -651,14 +591,13 @@ async fn main() {
 
                     //Spawn thread to propagate listening port to all network
                     tokio::spawn( async move {network::to_net(msg)});
-                    //thread::spawn(move || network::to_net(msg));
 
                     now = SystemTime::now();
                 }
             },
             Err(e) => error!("Error {}", e),
         }
-        
+
         let a_model_message = arc_02_model_message.lock().await;
  
         match handle_model_available(&model_request_rx, a_model_message.clone(), model_reply_tx.clone()){
@@ -666,7 +605,7 @@ async fn main() {
 
                 if n != 0 {
                     info!("Message processed")
-                }               
+                }
             }
             Err(e) => {
                 error!("Error while removing message from list => {}", e)
@@ -680,10 +619,9 @@ async fn main() {
         model_message: arc_read_model_msg,
         web_info: arc_write_web_info,
     };
-    
-    //let handle_1 = tokio::spawn(async move {server(arc_read_model_msg).await});
+
     let handle_1 = tokio::spawn(async move {server(web_comm).await});
-    
+
     println!("End of main");
     let _ = tokio::join!(handle_1, input_t, main_handle, net_handle, local_handle);
 }
@@ -691,36 +629,26 @@ async fn main() {
 
 //Async functions
 async fn update_content(State(web): State<AppState>) -> Html<String> {
-    //async fn update_content(State(s_msg): State<Arc<Mutex<String>>>) -> Html<String> {
     
-    let msg = web.model_message.lock().await;    
+    let msg = web.model_message.lock().await;
     let h = Html(format!("<p> {} </p>", msg));
     h
 }
 
 
-//async fn submit_form(data: String) -> impl IntoResponse {
 async fn submit_form(State(arc_web): State<AppState>, Form(data): Form<FormData>) -> impl IntoResponse {
     println!("Received message: {:?}", data);
     println!("Received message: {}", data.message);
     println!("Received message: {}", data.model);
-    println!("Received message: {}", data.hidden_content);   
+    println!("Received message: {}", data.hidden_content);
 
     let mut web = arc_web.web_info.lock().await;
-    
+
     web.push(data);
 
-    //web.message = data.message;
-    //web.model = data.model;
-    //web.hidden_content = data.hidden_content; 
-
-    println!("Web info: {:?}", web);
-
-    //Html(format!("Received message: {:?}", data));
     let file = tokio::fs::read_to_string("web/index.html").await.expect("Error while readin a file");
     Html(file)
 }
-    
 
 async fn root() -> impl IntoResponse {
 
@@ -729,14 +657,12 @@ async fn root() -> impl IntoResponse {
 }
 
 async fn server(web_comm: AppState){
-    //async fn server(msg: Arc<Mutex<String>>){
 
     let app = Router::new()
     .route("/", get(root))
     .nest_service("/web", get_service(ServeDir::new("web")))
     .route("/update", get(update_content))
-    .route("/submit", axum::routing::post(submit_form))  
-    //.layer(Extension(web_comm));
+    .route("/submit", axum::routing::post(submit_form)) 
     .with_state(web_comm);
 
     let addr = "0.0.0.0:8680";
