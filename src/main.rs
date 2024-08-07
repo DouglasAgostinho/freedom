@@ -431,10 +431,10 @@ async fn main() {
     //Spawn thread for server initialization
     thread::spawn( move || main_span_clone.in_scope(move || network::net_init(network_message_tx, model_request_tx)));
 
-    let input_t = tokio::task::spawn_blocking(move || {local_users(local_message_tx)});
+    let local_users_join_handle = tokio::task::spawn_blocking(move || {local_users(local_message_tx)});
 
     //Network loop
-    let net_handle = tokio::spawn( async move{            
+    let net_web_join_handle = tokio::spawn( async move{            
         
         loop {
 
@@ -486,7 +486,7 @@ async fn main() {
     
 
 
-    let local_handle = tokio::spawn( async move{
+    let local_menu_join_handle = tokio::spawn( async move{
 
         loop{
 
@@ -590,9 +590,8 @@ async fn main() {
         }
     });
 
-    let main_handle = tokio::spawn(async move { loop{
+    let main_loop_join_handle = tokio::spawn(async move { loop{
 
-        
 
         let received_model_msg = le_model(&model_reply_rx);
 
@@ -655,15 +654,24 @@ async fn main() {
 
     }});
 
+
     let web_comm = AppState{
         model_message: arc_read_model_msg,
         web_info: arc_write_web_info,
     };
 
-    let handle_1 = tokio::spawn(async move {server(web_comm).await});
+    let web_server_join_handle = tokio::spawn(async move {server(web_comm).await});
 
-    println!("End of main");
-    let _ = tokio::join!(handle_1, input_t, main_handle, net_handle, local_handle);
+
+    //println!("End of main");
+
+    let _ = tokio::join!(
+        local_users_join_handle,
+        net_web_join_handle,
+        local_menu_join_handle,
+        main_loop_join_handle,
+        web_server_join_handle
+        );
 }
 
 
