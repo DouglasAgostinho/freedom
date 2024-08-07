@@ -24,7 +24,7 @@ use std::thread;
 use block::NetWorkMessage;
 use serde::Deserialize;
 use std::net::TcpStream;
-use block::{Block, Node};
+use block::{Block, Node, Peers};
 use net::network::{self, VERSION};
 use std::time::{Duration, SystemTime};
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -361,9 +361,15 @@ async fn main() {
     let arc_model_tuple_available = Arc::clone(&shared_model_tuple);
     
     
-    //NODE struc contain machine side functions and config
-    let mut my_node: Node = Node{address:EMPTY_STRING};
-    my_node.address = my_node.gen_address();
+    //PEERS struct will be used to add Network peers information
+    //Like PEERS address and model made available to public
+    let my_self = Peers{address: MY_ADDRESS.to_string(), models: Vec::from(["Phi 3".to_string()])};
+
+    //NODE struct contain machine side functions and config
+    //NODE also contain Network related info 
+    //As a PEERS Vector (which first item will be the node itself)
+    let mut my_node: Node = Node{known_peers: Vec::from([my_self])};
+    
 
     //Prepare variable to be shared between threads
     let shared_node = Arc::new(Mutex::new(my_node));

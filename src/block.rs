@@ -47,9 +47,14 @@ impl Block {
     }       
 }
 
+pub struct Peers {
+    pub address: String,
+    pub models: Vec<String>,    
+}
 
 pub struct Node {
-    pub address: String,
+    //pub address: String,
+    pub known_peers: Vec<Peers>,
 }
 impl Node {
 
