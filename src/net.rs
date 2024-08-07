@@ -11,7 +11,7 @@ pub mod network{
     use crate::block::NetWorkMessage;
     use std::sync::mpsc::Sender;    
     use std::io::{self, Read, Write}; 
-    use std::net::{TcpListener, TcpStream};
+    use std::net::{TcpListener, TcpStream};    
     use tracing::{instrument, info, error};
     use ring::agreement::{UnparsedPublicKey, X25519};
     use crate::crypt::crypt::{generate_own_keys, generate_shared_key, encrypt, decrypt}; 
@@ -33,95 +33,130 @@ pub mod network{
 
     //Software version
     pub const VERSION: &str = "000_01";
+    //pub const VER_SIZE: usize = VERSION.len();
 
+    //Message Code
+    //pub const TAIL_CODE: &str = "00000";
+    //pub const CODE_SIZE: usize = TAIL_CODE.len();
+    
+    
     #[instrument]
-    fn handle_rcv_message( //fn handle_message(
-        message: &String,
+    fn handle_message(
+        message: &String, 
+        mode: &str, 
         tx: Sender<[String; 3]>, 
         income_stream: TcpStream, 
         model_tx: Sender<(TcpStream, String)>) -> bool {
 
-        //println!("NET Msg => {:?} from => {:?}", message, income_stream);
-        
-        let msg: NetWorkMessage = match serde_json::from_str(message){
-            Ok(nm) => nm,
-            Err(e) => {
-                error!("Error found while Deserializing NetMessage => {} from => {:?}", e, income_stream);
-                NetWorkMessage::new()
-            }
+        //Function to treat incoming / outgoing messages
+        //let msg_len = message.len();
 
-        };
+        //let ser_msg = &message[ .. msg_len - CODE_SIZE - VER_SIZE];
 
-        match &msg.code[..] {
+        let message: NetWorkMessage = serde_json::from_str(message).unwrap();
 
-            "####1" => {
+        let msg = "abc";
 
-                let snd_model_msg = msg.message;
+        match mode {
 
-                println!("{}", snd_model_msg);
+            "send" => {false},
 
-                if snd_model_msg != EMPTY_STRING {
+            "receive" => {
+                //let msg = message.trim();
 
-                    //Send net message to main thread
-                    if model_tx.send((income_stream, snd_model_msg)).is_err() {
-                        error!("Failed to send message to main thread.");
-                    }
-                    else {
-                        info!("Model Message sent OK")
-                    }
-                }
-                else {
-                    error!("Empty message from model request");
+                match msg {
 
-                    ()
+                    "[!]_stream_[!]" => true,
+
+                    _ => {
+                        //info!("Received: {}", message);
+
+                        //let msg_code = &message[msg_len - CODE_SIZE - VER_SIZE .. msg_len - VER_SIZE];
+                        let msg_code = &message.code[..];
+                        
+
+                        match msg_code {
+
+                            "####1" => {
+                                
+                                //let snd_model_msg = ser_msg.to_string();
+                                let snd_model_msg = message.message;
+
+                                println!("{}", snd_model_msg);
+                                
+                                if snd_model_msg != EMPTY_STRING {
+
+                                    //Send net message to main thread
+                                    if model_tx.send((income_stream, snd_model_msg)).is_err() {
+                                        error!("Failed to send message to main thread.");
+                                    }
+                                    else {
+                                        info!("Model Message sent OK")
+                                    }
+                                }
+                                else {
+                                    error!("Empty message from model request");
+                                    
+                                    ()
+                                }
+                            },
+
+                            "####2" => {
+
+                            }
+
+                            "00000" => println!("Message -> {}", msg),
+
+                            "00001" => { //Block received
+                                let mut net_message :Vec<[String; 3]> = match serde_json::from_str(&message.message){
+
+                                    Ok(msg) => msg,
+                                    Err(e) => {
+                                        error!("Error while deserializing Net Message => {}", e);
+                                        Vec::from([[EMPTY_STRING; 3]])
+                                    }
+                                };
+
+                                loop{
+
+                                    let user_msg: [String; 3];
+
+                                    if let Some(_) =  net_message.get(1){
+
+                                        user_msg = net_message.swap_remove(1);
+
+                                    }
+                                    else{
+                                        user_msg = [EMPTY_STRING; 3];
+                                    }
+                                    
+                                    if user_msg[0] != EMPTY_STRING {
+
+                                        //Send net message to main thread
+                                        if tx.send(user_msg).is_err() {
+                                            error!("Failed to send message to main thread.");
+                                        }
+                                    }
+                                    else {
+                                        break;
+                                    }
+                                }
+                            }
+
+                            _ => (),
+                        }
+                        false //to_do Will return decrypted message
+                    },
                 }
             },
 
-            "####2" => {
+            "test" => {
+                //println!("Received: {}", message);
+                false
+            },
 
-            }
-
-            "00000" => println!("Message -> {}", msg.message),
-
-            "00001" => { //Block received
-                let mut net_message :Vec<[String; 3]> = match serde_json::from_str(&msg.message){
-
-                    Ok(msg) => msg,
-                    Err(e) => {
-                        error!("Error while deserializing Net Message => {}", e);
-                        Vec::from([[EMPTY_STRING; 3]])
-                    }
-                };
-
-                loop{
-
-                    let user_msg: [String; 3];
-
-                    if let Some(_) =  net_message.get(1){
-
-                        user_msg = net_message.swap_remove(1);
-
-                    }
-                    else{
-                        user_msg = [EMPTY_STRING; 3];
-                    }
-                    
-                    if user_msg[0] != EMPTY_STRING {
-
-                        //Send net message to main thread
-                        if tx.send(user_msg).is_err() {
-                            error!("Failed to send message to main thread.");
-                        }
-                    }
-                    else {
-                        break;
-                    }
-                }
-            }
-
-            _ => (),
+            _ => false,
         }
-        true
     }
 
     #[instrument]
@@ -167,7 +202,48 @@ pub mod network{
                 }
             };
 
-            if !handle_rcv_message(&received.to_string(), snd, income_stream, model_snd) {
+            if handle_message(&received.to_string(), "receive", snd, income_stream, model_snd) {
+/* 
+                //Repply to client that server is ready to receive stream
+                match stream.write_all("ready_to_receive".as_bytes()){
+                    Ok(s) => s,
+                    Err(e) => {
+                        error!("Error while trying to send network message => {}", e);
+                        return
+                    }
+                }
+
+                //Create buffer to receive data
+                let mut buffer = NET_BUFFER;
+
+                // Receive data continuously from the server
+                loop {
+                    match stream.read(&mut buffer) {
+                        Ok(0) => {
+                            info!("Connection closed by server");
+                            break;
+                        },
+                        Ok(n) => {
+                            let msg = String::from_utf8_lossy(&buffer[0..n]);
+                            print!("{}", msg);      //Uses print! to not insert /n after each received data
+
+                            // Ensure immediate output
+                            match io::stdout().flush(){
+                                Ok(n) => n,
+                                Err(e) => {
+                                    error!("Error while flushing Std output => {}", e);
+                                    break
+                                }
+                            }  
+                        },
+                        Err(e) => {
+                            error!("Failed to receive message: {}", e);
+                            break;
+                        }
+                    }
+                }*/
+            }
+            else {
                 info!("Connection closed by server");
                 break;
             }
@@ -206,85 +282,121 @@ pub mod network{
             }
         }
     }
-
+    
     /// Broadcast message to all Network
     #[instrument]
     pub fn to_net(send_what: String) {
 
-
         for n in 1..MAX_PEERS {
-
-            let client = LocalClient::new();
-
+   
             let msg = send_what.clone();
 
             //Loop through all address
             let address = format!("192.168.191.{}:6886", n);
 
             //call client function to send message
-            thread::spawn(move || match client.connect_send(address.clone(), msg){
+            thread::spawn(move || match client(msg, &address, "simple"){
 
-                Ok(_) =>(),
+                Ok(_) => (),
                 Err(e) => error!("On host {} Error found {}",address, e),
             });
         }
-    } 
+    }    
 
-    struct LocalClient;
 
-    impl LocalClient {
+    fn client(message: String, address: &str, mode: &str)-> io::Result<String> {
+        match mode {
+            "simple" => {
+                
+                // Connect to the server
+                let mut stream = TcpStream::connect(address)?;
+                // Send data to the server
+                stream.write_all(message.as_bytes())?;
+                Ok(EMPTY_STRING)
+            },
+            "serialized" => {
+                // Connect to the server
+                let mut stream = TcpStream::connect(address)?;
 
-        fn new() -> Self {
-            LocalClient
-        }
+                let serialized = serde_json::to_string(&message)?;
+                stream.write_all(serialized.as_bytes())?;
+                Ok(EMPTY_STRING)
+            },
+            "test" => {
+                // Connect to the server
+                let mut stream = TcpStream::connect(address)?;
+                stream.write_all(message.as_bytes())?;
+                Ok(EMPTY_STRING)
+            },
+            "model_msg" => {
+                // Connect to the server
+                let mut stream = TcpStream::connect(address)?;
 
-        fn connect_send(&self, dest_addr: String, message: String) -> io::Result<TcpStream>{
-            //fn client_write(mut stream: TcpStream, message: String) -> io::Result<TcpStream>{
+                // Send data to the server
+                stream.write_all(message.as_bytes())?;
 
-            // Connect to the server
-            let mut stream = TcpStream::connect(dest_addr)?;
+                stream.flush()?;
 
-            //Send message to connected server
-            stream.write_all(message.as_bytes())?;
-
-            
-
-            Ok(stream)
-        }
-
-        fn send_msg(&self, mut stream: TcpStream, message: String) -> io::Result<TcpStream>{
-
-            //Send message to connected server
-            stream.write_all(message.as_bytes())?;
-
-            Ok(stream)
-        }
-
-        fn read_msg(&self, mut stream: TcpStream) -> (String, TcpStream){
-
-            let mut buf: [u8; 8192] = NET_BUFFER;
-            let bytes_read: usize = match stream.read(&mut buf){
-                Ok(b) => b,
-                Err(e) => {
-                    error!("Error while reading stream => {}", e);
-                    return (EMPTY_STRING, stream)
+                let mut buf = NET_BUFFER;
+                let bytes_read = match stream.read(&mut buf){
+                    Ok(b) => b,
+                    Err(e) => {
+                        error!("Error while reading stream => {}", e);
+                        return Ok(EMPTY_STRING)
+                    }
+                };
+                
+                let received = if bytes_read != 0 {
+                    String::from_utf8_lossy(&buf[..bytes_read]).to_string()
                 }
-            };
+                else {EMPTY_STRING};
 
-            let received: String = if bytes_read != 0 {
-                String::from_utf8_lossy(&buf[..bytes_read]).to_string()
-            }
-            else {"!!!EMPTY_STRING!!!".to_string()};
+                println!("received client {}", received);
 
-            (received, stream)
+                Ok(received)
+            },
+            _ => Ok(EMPTY_STRING),
         }
+    }
+
+    fn client_connect(dest_addr: String) -> io::Result<TcpStream>{
+        // Connect to the server
+        let stream = TcpStream::connect(dest_addr)?;
+        Ok(stream)
+    }
+
+    fn client_read(mut stream: TcpStream) -> (String, TcpStream){
+        
+        let mut buf: [u8; 8192] = NET_BUFFER;
+        let bytes_read: usize = match stream.read(&mut buf){
+            Ok(b) => b,
+            Err(e) => {
+                error!("Error while reading stream => {}", e);
+                return (EMPTY_STRING, stream)
+            }
+        };
+
+        let received: String = if bytes_read != 0 {
+            String::from_utf8_lossy(&buf[..bytes_read]).to_string()
+        }
+        else {"!!!EMPTY_STRING!!!".to_string()};
+
+        (received, stream)
+    }
+
+    fn client_write(mut stream: TcpStream, message: String) -> io::Result<TcpStream>{
+
+        stream.write_all(message.as_bytes())?;
+
+        Ok(stream)
+
     }
 
     /// Function responsible to perform message exchange securely by
     /// secure assynchronous key exchange and message encryption
     #[instrument]
     pub fn request_model_msg(dest_ip: String, model: String) -> io::Result<String> {
-
+        
         //Generate own Ephemeral Keys
         let (pv_key, pb_key) = generate_own_keys();
 
@@ -295,6 +407,9 @@ pub mod network{
 
         let ser_snd_msg = serde_json::to_string(&to_snd_msg)?;
 
+        //ser_snd_msg.push_str("####1");    //####1 - code for encryption handshake
+        //ser_snd_msg.push_str(VERSION);    //Insert software version in message tail
+
         let net_msg = NetWorkMessage{
             version: VERSION.to_string(),
             time: EMPTY_STRING,
@@ -304,12 +419,16 @@ pub mod network{
         };
 
         let ser_snd_net_msg = serde_json::to_string(&net_msg)?;
+        
+        let client_stream = client_connect(dest_ip)?;
+        
+        //let client_stream = client_write(client_stream, ser_snd_msg)?;
+        let client_stream = client_write(client_stream, ser_snd_net_msg)?;
+        
+        let (ser_crypto, client_stream) = client_read(client_stream);
 
-        let client = LocalClient::new();
-        let client_stream = client.connect_send(dest_ip, ser_snd_net_msg)?;
-
-        let (ser_crypto, client_stream) = client.read_msg(client_stream);
-
+        //Send request for model message and Public Key
+        //Received message will come as a serialized tuple (encrypted message, client public key)
         let received_crypto :(String, Vec<u8>) = serde_json::from_str(&ser_crypto)?;
 
         //Decoding client public key
@@ -332,31 +451,25 @@ pub mod network{
 
         let model_address = "192.168.191.1:8687".to_string();
 
+        // Connect to the model
+        let model_stream = client_connect(model_address)?;
+
         // Send data to the server
-        let model_stream = client.connect_send(model_address, msg)?;
-        
+        let model_stream = client_write(model_stream, msg)?;
 
-        loop{
+        loop{            
 
-            let (model_msg, _) = client.read_msg(model_stream.try_clone()?);
+            let (model_msg, _) = client_read(model_stream.try_clone()?);
 
             if model_msg == "!!!EMPTY_STRING!!!".to_string() {
                 break;
-            }
-
-            //println!("Debugggggggg");
+            }        
+            
             let crypt_msg = encrypt(shared_key, model_msg.clone());
 
             let crypt_ser = BASE64_STANDARD.encode(crypt_msg);
 
-            let mut dummy_msg = NetWorkMessage::new();
-
-            dummy_msg.message = crypt_ser;
-
-            let ser_dummy_msg = serde_json::to_string(&dummy_msg)?;
-
-            match client.send_msg(client_stream.try_clone()?, ser_dummy_msg){
-                //match client_write(client_stream.try_clone()?, crypt_ser){
+            match client_write(client_stream.try_clone()?, crypt_ser){
                 Ok(_) => (),
                 Err(e) => println!("Error found while sendind model msg => {}", e),
             }
@@ -402,21 +515,16 @@ pub mod network{
         income_stream.write_all(ser_crypt_msg.as_bytes())?;
 
         let mut model_message = EMPTY_STRING;
+        
+        loop{            
 
-        let client = LocalClient::new();
-
-        loop{
-
-            let (ser_crypt_msg, _) = client.read_msg(income_stream.try_clone()?);
+            let (ser_crypt_msg, _) = client_read(income_stream.try_clone()?);
 
             if ser_crypt_msg == "!!!EMPTY_STRING!!!".to_string() {
                 break;
             }
 
-            let dummy_msg: NetWorkMessage = serde_json::from_str(&ser_crypt_msg)?;
-
-            let crypt_msg: Vec<u8> = match BASE64_STANDARD.decode(dummy_msg.message.clone()){
-                //let crypt_msg: Vec<u8> = match BASE64_STANDARD.decode(ser_crypt_msg.clone()){
+            let crypt_msg: Vec<u8> = match BASE64_STANDARD.decode(ser_crypt_msg.clone()){
                 Ok(v) => v,
                 Err(e) => {
                     println!("err {}", e);
@@ -434,7 +542,7 @@ pub mod network{
                 Ok(t) => {
                     t},
                 Err(e) => {
-                    error!("Failed to send input to main thread => {}", e);
+                    error!("Failed to send input to main thread => {}", e);            
                 }
             }
         }
@@ -443,4 +551,5 @@ pub mod network{
 
         Ok(EMPTY_STRING)
     }
+
 }

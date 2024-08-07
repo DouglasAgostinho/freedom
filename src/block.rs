@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::time::{SystemTime,UNIX_EPOCH};
 
 //to use in String based variables
-const EMPTY_STRING: String = String::new();
+//const EMPTY_STRING: String = String::new();
 
 #[derive(Serialize, Deserialize)]
 pub struct NetWorkMessage {
@@ -14,6 +14,7 @@ pub struct NetWorkMessage {
     pub address:    String,
     pub code:       String,        
 }
+/* 
 impl NetWorkMessage {
 
     pub fn new() -> NetWorkMessage{
@@ -27,7 +28,7 @@ impl NetWorkMessage {
 
     }
     
-}
+}*/
 
 //#[derive(Clone)]
 pub struct Block {        

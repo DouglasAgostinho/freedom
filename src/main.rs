@@ -254,6 +254,7 @@ fn le_model (model_rx: &Receiver<String>) -> String{
             Ok(msg) => {
                 //Return input received
                 info!("Received input: {:?}", msg);
+                //println!("Le model => {:?}", msg);
                 msg
 
             },
@@ -316,6 +317,11 @@ fn handle_model_available(
 #[tokio::main]
 async fn main() {
 
+    //----------------------------------------
+    //   Structs and Variables definition
+    //----------------------------------------
+
+
     //Instatiate the subscriber & file appender
     let file_appender = tracing_appender::rolling::hourly(LOG_PATH, "log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
@@ -327,7 +333,11 @@ async fn main() {
     let main_span: span::Span = span!(Level::INFO,"Main");
     let _enter: span::Entered = main_span.enter();
 
-    //Initiate Thread message channels
+    //Cloning the main span to set threads inside its scope
+    let main_span_clone = main_span.clone();
+
+
+    //MPSC - Initiate Thread message channels
     //Local messages
     let (local_message_tx, local_message_rx) = mpsc::channel();
     //Network messages received from peers
@@ -337,61 +347,93 @@ async fn main() {
     //Reply from model
     let (model_reply_tx, model_reply_rx) = mpsc::channel();
     
-    let main_span_clone = main_span.clone();
-    //Spawn thread for server initialization
-    thread::spawn( move || main_span_clone.in_scope(move || network::net_init(network_message_tx, model_request_tx)));
-
-    let model_message: Vec<[String; 2]> = Vec::from([[EMPTY_STRING; 2]]); 
-
-    let shared_model_message = Arc::new(Mutex::new(model_message));
-
-    let arc_net_write_model_message = Arc::clone(&shared_model_message);
     
-    //Instance of Node struct
+    //Vector containing the selected MODEL and USER MESSAGE to be sent to model.
+    let model_tuple: Vec<[String; 2]> = Vec::from([[EMPTY_STRING; 2]]); 
+
+    //Prepare variable to be shared between threads
+    let shared_model_tuple = Arc::new(Mutex::new(model_tuple));
+    //Model & Message from web server
+    let arc_web_write_model_tuple = Arc::clone(&shared_model_tuple);
+    //Model & Message from local CLI
+    let arc_cli_write_model_tuple = Arc::clone(&shared_model_tuple);
+    //Model & Message from available model reply
+    let arc_model_tuple_available = Arc::clone(&shared_model_tuple);
+    
+    
+    //NODE struc contain machine side functions and config
     let mut my_node: Node = Node{address:EMPTY_STRING};
     my_node.address = my_node.gen_address();
 
+    //Prepare variable to be shared between threads
     let shared_node = Arc::new(Mutex::new(my_node));
+    //NODE instance used in local CLI
+    let arc_cli_node = Arc::clone(&shared_node);
+    //NODE instance used in network message thread
+    let arc_net_node = Arc::clone(&shared_node);
+    //NODE instance used in broadcast network message thread
+    let arc_to_net_node = Arc::clone(&shared_node);
 
-    let arc_write_node = Arc::clone(&shared_node);
 
-    let arc_net_write_node = Arc::clone(&shared_node);
-
-    let arc_to_net_read_node = Arc::clone(&shared_node);
-    
-    //Initiate time measurement - for time triggered features
-    let mut now = SystemTime::now();
-
-    let input_t = tokio::task::spawn_blocking(move || {local_users(local_message_tx)});
-
-    //Shared variable for receive model (write) message and send to web server (read)
+    //Shared variable to store the MODEL MESSAGE (reply) and send to web server
     let shared_model_msg = Arc::new(Mutex::new(String::new()));
+    //Receive message (reply) from model on main thread
     let arc_write_model_msg = Arc::clone(&shared_model_msg);
+    //Display message (reply) from model on Web (server) page
     let arc_read_model_msg = Arc::clone(&shared_model_msg);
 
-    //Web form struc and shared variable
+
+    //WEB form struct to store data get on post method
+    //This data can be found in the index.html
+    //Check for variables with same name and submit method
     let web_info = Vec::from([FormData{
         message: EMPTY_STRING,
         model: EMPTY_STRING,
         hidden_content: EMPTY_STRING,
     }]);
 
+    //Prepare variable to be shared between threads
     let shared_web_info = Arc::new(Mutex::new(web_info));
+    //Web info will be writen here in the Web Server
     let arc_write_web_info = Arc::clone(&shared_web_info);
-    //let arc_read_web_info = Arc::clone(&shared_web_info);
+    //Web info will be read in the net thread
     let arc_net_rw_web_info = Arc::clone(&shared_web_info);
 
-    //Shared Variable for Blocks write
+
+    //BLOCK structure is intended to store the public message.
+    //This message will be propagate into the network and
+    //Nodes will be able to verify if they have the desired model
+    //Once a match occurs, the node will start the request message function
     let blocks: Block = Block{
         message: Vec::from([[EMPTY_STRING; 3]])
     };
 
+    //Prepare variable to be shared between threads
     let shared_blocks = Arc::new(Mutex::new(blocks));
-
-    let arc_net_write_blocks = Arc::clone(&shared_blocks);
-
+    //Append into the structure the blocks received from the network and Web Server
+    let arc_web_net_write_blocks = Arc::clone(&shared_blocks);
+    //Append into the structure the blocks inserted from CLI
     let arc_local_write_blocks = Arc::clone(&shared_blocks);
+    //Read blocks messages on the main thread
+    let arc_main_read_blocks = Arc::clone(&shared_blocks);
 
+
+    //Initiate time measurement - for time triggered features
+    let mut now = SystemTime::now();
+
+
+    //------------------------------
+    //   Thread Loops start here
+    //------------------------------
+
+
+    
+    //Spawn thread for server initialization
+    thread::spawn( move || main_span_clone.in_scope(move || network::net_init(network_message_tx, model_request_tx)));
+
+    let input_t = tokio::task::spawn_blocking(move || {local_users(local_message_tx)});
+
+    //Network loop
     let net_handle = tokio::spawn( async move{            
         
         loop {
@@ -401,7 +443,7 @@ async fn main() {
 
             if net_msg[0] != EMPTY_STRING {
 
-                let mut net_write_blocks = arc_net_write_blocks.lock().await;
+                let mut net_write_blocks = arc_web_net_write_blocks.lock().await;
 
                 if !net_write_blocks.message.contains(&net_msg){
 
@@ -422,16 +464,16 @@ async fn main() {
 
                 if net_web_rw_info[1].message != EMPTY_STRING {
 
-                    let net_write_node = arc_net_write_node.lock().await;
-                    let mut net_write_blocks = arc_net_write_blocks.lock().await;
+                    let net_node = arc_net_node.lock().await;
+                    let mut web_write_blocks = arc_web_net_write_blocks.lock().await;
     
-                    let message: [String; 3] = [net_write_node.get_time_ns(), MY_ADDRESS.to_string(), net_web_rw_info[1].model.clone()];
+                    let message: [String; 3] = [net_node.get_time_ns(), MY_ADDRESS.to_string(), net_web_rw_info[1].model.clone()];
 
-                    net_write_blocks.insert(message.clone());
+                    web_write_blocks.insert(message.clone());
 
-                    let mut net_write_model_message =  arc_net_write_model_message.lock().await;
+                    let mut web_write_model_message =  arc_web_write_model_tuple.lock().await;
 
-                    net_write_model_message.push([net_web_rw_info[1].model.clone(), net_web_rw_info[1].message.clone()]);
+                    web_write_model_message.push([net_web_rw_info[1].model.clone(), net_web_rw_info[1].message.clone()]);
 
                     net_web_rw_info.swap_remove(1);
     
@@ -441,7 +483,7 @@ async fn main() {
         }
     });
 
-    let arc_write_model_message = Arc::clone(&shared_model_message);
+    
 
 
     let local_handle = tokio::spawn( async move{
@@ -460,14 +502,14 @@ async fn main() {
 
                         let mut local_write_blocks = arc_local_write_blocks.lock().await;
 
-                        let mut write_model_message = arc_write_model_message.lock().await;
+                        let mut cli_write_model_message = arc_cli_write_model_tuple.lock().await;
 
-                        let write_node = arc_write_node.lock().await;
+                        let cli_node = arc_cli_node.lock().await;
 
-                        write_model_message.push([model.clone(), msg.clone()]);
+                        cli_write_model_message.push([model.clone(), msg.clone()]);
 
                         //Organize data to fit in the message format [current time, address, message text]
-                        let message: [String; 3] = [write_node.get_time_ns(), MY_ADDRESS.to_string(), String::from(model.trim())];
+                        let message: [String; 3] = [cli_node.get_time_ns(), MY_ADDRESS.to_string(), String::from(model.trim())];
 
                         //Call insert function to format and store in a block section
                         local_write_blocks.insert(message.clone());
@@ -477,11 +519,11 @@ async fn main() {
                     2 => { //"2" => {
                         println!("\x1B[2J\x1B[1;1H");
                         
-                        let write_model_message = arc_write_model_message.lock().await;
+                        let cli_write_model_message = arc_cli_write_model_tuple.lock().await;
                         println!("-----------------------------");
                         println!("  !!!   Messages List   !!!");
                         println!("-----------------------------");
-                        println!(" Messages => {:?}", write_model_message);
+                        println!(" Messages => {:?}", cli_write_model_message);
 
                         println!("{}", MAIN_MENU);
                     },
@@ -550,9 +592,7 @@ async fn main() {
 
     let main_handle = tokio::spawn(async move { loop{
 
-        let arc_02_model_message = Arc::clone(&shared_model_message);
-
-        let arc_read_blocks = Arc::clone(&shared_blocks);
+        
 
         let received_model_msg = le_model(&model_reply_rx);
 
@@ -574,16 +614,16 @@ async fn main() {
                 if n >= MINUTE{
                     info!("One minute");
 
-                    let read_blocks = arc_read_blocks.lock().await;
-                    let to_net_read_node = arc_to_net_read_node.lock().await;
+                    let main_read_blocks = arc_main_read_blocks.lock().await;
+                    let to_net_node = arc_to_net_node.lock().await;
 
-                    let block_message = serde_json::to_string(&read_blocks.message).unwrap();
+                    let block_message = serde_json::to_string(&main_read_blocks.message).unwrap();
 
                     let net_msg = NetWorkMessage{
                         version: VERSION.to_string(),
-                        time: to_net_read_node.get_time_ns(),
+                        time: to_net_node.get_time_ns(),
                         message: block_message,
-                        address: to_net_read_node.gen_address(),
+                        address: to_net_node.gen_address(),
                         code: "00001".to_string(),
                     };
 
@@ -598,9 +638,9 @@ async fn main() {
             Err(e) => error!("Error {}", e),
         }
 
-        let a_model_message = arc_02_model_message.lock().await;
+        let model_tuple_available = arc_model_tuple_available.lock().await;
  
-        match handle_model_available(&model_request_rx, a_model_message.clone(), model_reply_tx.clone()){
+        match handle_model_available(&model_request_rx, model_tuple_available.clone(), model_reply_tx.clone()){
             Ok(n) => {
 
                 if n != 0 {
