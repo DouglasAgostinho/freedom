@@ -398,7 +398,8 @@ async fn main() {
     let arc_net_node = Arc::clone(&shared_node);
     //NODE instance used in broadcast network message thread
     let arc_to_net_node = Arc::clone(&shared_node);
-
+    //NODE instance to receive new peers from network
+    let arc_web_net_node = Arc::clone(&shared_node);
 
     //Shared variable to store the MODEL MESSAGE (reply) and send to web server
     let shared_model_msg = Arc::new(Mutex::new(String::new()));
@@ -464,7 +465,7 @@ async fn main() {
         loop {
 
             // Check for new messages from the network thread
-            let (net_msgs, _net_peers) = handle_net_msg(&network_message_rx);
+            let (net_msgs, net_peers) = handle_net_msg(&network_message_rx);
             //let net_msg: [String; 3] = handle_net_msg(&network_message_rx);
 
             for net_msg in net_msgs{
@@ -477,20 +478,25 @@ async fn main() {
                         //Call insert function to format and store in a block section
                         net_write_blocks.insert(net_msg.clone());
                     }
-    
-                    //net_msg = [EMPTY_STRING; 3];
                 }
-                else {
-                    //break;
-                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                }
-
+                //else {
+                    //tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                //}
             }
-            
-            //else {
-                //break;
-              //  tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-            //}
+
+            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+            {
+                let mut web_net_node = arc_web_net_node.lock().await;
+
+                for peer in net_peers{
+
+                    web_net_node.insert_peer(peer);
+
+                }
+            }
+
+            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
             let mut net_web_rw_info = arc_net_rw_web_info.lock().await;
 
@@ -514,6 +520,7 @@ async fn main() {
                 }
             }
 
+            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         }
     });
 
@@ -565,12 +572,15 @@ async fn main() {
                     3 => { //"3" => {
 
                         println!("\x1B[2J\x1B[1;1H");
+
+                        let cli_node = arc_cli_node.lock().await;
                         
                         let local_write_blocks = arc_local_write_blocks.lock().await;
                         println!("-----------------------------");
                         println!("  !!!  Updated blocks  !!!");
                         println!("-----------------------------");
                         println!(" Blocks => {:?}", local_write_blocks.message);
+                        println!(" Peers => {:?}", cli_node.known_peers);
 
                         println!("{}", MAIN_MENU);
                     }

@@ -47,7 +47,7 @@ impl Block {
     }       
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Peers {
     pub address: String,
     pub models: Vec<String>,    
@@ -93,6 +93,13 @@ impl Node {
         
         since_the_epoch.as_nanos().to_string()
     }
+
+    pub fn insert_peer (&mut self, peer: Peers) {
+        //Insert data in the Vector
+        if self.known_peers.contains(&peer){
+            self.known_peers.push(peer);
+        }
+    }      
     
 }
 
