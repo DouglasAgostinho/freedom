@@ -8,7 +8,7 @@ pub mod network{
 
     use std::thread;
     use base64::prelude::*;
-    use crate::block::NetWorkMessage;
+    use crate::block::{NetWorkMessage, Peers};
     use std::sync::mpsc::Sender;    
     use std::io::{self, Read, Write}; 
     use std::net::{TcpListener, TcpStream};    
@@ -44,7 +44,7 @@ pub mod network{
     fn handle_message(
         message: &String, 
         mode: &str, 
-        tx: Sender<[String; 3]>, 
+        tx: Sender<NetWorkMessage>,  //tx: Sender<[String; 3]>, 
         income_stream: TcpStream, 
         model_tx: Sender<(TcpStream, String)>) -> bool {
 
@@ -108,6 +108,8 @@ pub mod network{
                             "00000" => println!("Message -> {}", msg),
 
                             "00001" => { //Block received
+                                
+                                /* 
                                 let mut net_message :Vec<[String; 3]> = match serde_json::from_str(&message.message){
 
                                     Ok(msg) => msg,
@@ -117,20 +119,30 @@ pub mod network{
                                     }
                                 };
 
+                                let mut peers = message.peers.clone();
+
                                 loop{
 
-                                    let user_msg: [String; 3];
+                                    let mut user_msg: [String; 3] = [EMPTY_STRING; 3];
 
                                     if let Some(_) =  net_message.get(1){
 
                                         user_msg = net_message.swap_remove(1);
 
                                     }
-                                    else{
-                                        user_msg = [EMPTY_STRING; 3];
+                                    //else{
+                                      //  user_msg = 
+                                    //}
+
+                                    let mut peer= Peers::new();   
+
+                                    if let Some(_) =  peers.get(1){
+
+                                        peer = peers.swap_remove(1);
+
                                     }
                                     
-                                    if user_msg[0] != EMPTY_STRING {
+                                    if (user_msg[0] != EMPTY_STRING) || (peer.address != EMPTY_STRING) {
 
                                         //Send net message to main thread
                                         if tx.send(user_msg).is_err() {
@@ -140,7 +152,13 @@ pub mod network{
                                     else {
                                         break;
                                     }
-                                }
+                                }   */
+
+                               //Send net message to main thread
+                               if tx.send(message).is_err() {
+                                error!("Failed to send message to main thread.");
+                            }
+                                
                             }
 
                             _ => (),
@@ -162,7 +180,7 @@ pub mod network{
     #[instrument]
     fn handle_client(
         mut stream: TcpStream, 
-        tx: Sender<[String; 3]>, 
+        tx: Sender<NetWorkMessage>, //tx: Sender<[String; 3]>, 
         model_tx: Sender<(TcpStream, String)>) {
 
         let income_addr = match stream.peer_addr(){
@@ -251,7 +269,8 @@ pub mod network{
     }
 
     #[instrument]
-    pub fn net_init(tx: Sender<[String; 3]>, model_tx: Sender<(TcpStream, String)>){
+    pub fn net_init(tx: Sender<NetWorkMessage>, model_tx: Sender<(TcpStream, String)>){
+        //pub fn net_init(tx: Sender<[String; 3]>, model_tx: Sender<(TcpStream, String)>){
 
         //Composing IP address with received port
         let mut addr = String::from("0.0.0.0:");
@@ -410,11 +429,13 @@ pub mod network{
         //ser_snd_msg.push_str("####1");    //####1 - code for encryption handshake
         //ser_snd_msg.push_str(VERSION);    //Insert software version in message tail
 
+        //let dummy_peer = Peers::new();
+
         let net_msg = NetWorkMessage{
             version: VERSION.to_string(),
             time: EMPTY_STRING,
             message:ser_snd_msg,
-            address: EMPTY_STRING,
+            peers: Vec::from([Peers::new()]),
             code: "####1".to_string(),
         };
 

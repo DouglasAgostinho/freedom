@@ -4,17 +4,17 @@ use serde::{Deserialize, Serialize};
 use std::time::{SystemTime,UNIX_EPOCH};
 
 //to use in String based variables
-//const EMPTY_STRING: String = String::new();
+const EMPTY_STRING: String = String::new();
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct NetWorkMessage {
     pub version:    String,
     pub time:       String,
     pub message:    String,
-    pub address:    String,
+    pub peers:      Vec<Peers>,
     pub code:       String,        
 }
-/* 
+
 impl NetWorkMessage {
 
     pub fn new() -> NetWorkMessage{
@@ -22,13 +22,13 @@ impl NetWorkMessage {
             version: EMPTY_STRING,
             time: EMPTY_STRING,
             message: EMPTY_STRING,
-            address: EMPTY_STRING,
+            peers: Vec::from([Peers::new()]),
             code: EMPTY_STRING,
         }
 
     }
     
-}*/
+}
 
 //#[derive(Clone)]
 pub struct Block {        
@@ -47,11 +47,22 @@ impl Block {
     }       
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Peers {
     pub address: String,
     pub models: Vec<String>,    
 }
+impl Peers{
 
+    pub fn new() -> Peers{
+        Peers{
+            address: EMPTY_STRING,
+            models: Vec::from([EMPTY_STRING]),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Node {
     //pub address: String,
     pub known_peers: Vec<Peers>,
@@ -59,7 +70,7 @@ pub struct Node {
 impl Node {
 
     ///Node address generation
-    pub fn gen_address(&self) -> String{
+    pub fn _gen_address(&self) -> String{
 
         let mut hasher = Sha512::new();
     

@@ -229,9 +229,10 @@ fn handle_thread_msg(message_receiver: &Receiver<(u8, (String, String))>) -> (u8
 }
 
 #[instrument] //Tracing auto span generation
-fn handle_net_msg(message_receiver: &Receiver<[String; 3]>) -> [String; 3]{
+fn handle_net_msg(message_receiver: &Receiver<NetWorkMessage>) -> (Vec<[String; 3]>, Vec<Peers>){
+    //fn handle_net_msg(message_receiver: &Receiver<[String; 3]>) -> [String; 3]{
 
-    match message_receiver.try_recv() {
+    let msg = match message_receiver.try_recv() {
         Ok(msg) => {
             //Return input received
             info!("Received input: {:?}", msg);
@@ -239,13 +240,32 @@ fn handle_net_msg(message_receiver: &Receiver<[String; 3]>) -> [String; 3]{
         },
         Err(mpsc::TryRecvError::Empty) => {
             // No input received, return Empty String 
-            [EMPTY_STRING; 3]
+            //[EMPTY_STRING; 3]
+            NetWorkMessage::new()
         }
         Err(mpsc::TryRecvError::Disconnected) => {
             error!("Input thread has disconnected.");
-            [EMPTY_STRING; 3]
+            //[EMPTY_STRING; 3]
+            NetWorkMessage::new()
+        }
+    };
+
+    let net_message: Vec<[String; 3]> = if msg.message != EMPTY_STRING{
+        match serde_json::from_str(&msg.message){
+
+            Ok(msg) => msg,
+            Err(e) => {
+                error!("Error while deserializing Net Message => {}", e);
+                Vec::from([[EMPTY_STRING; 3]])
+            }
         }
     }
+    else{
+        Vec::from([[EMPTY_STRING; 3]])
+    };
+
+    (net_message, msg.peers)
+
 }
 
 fn le_model (model_rx: &Receiver<String>) -> String{
@@ -368,9 +388,8 @@ async fn main() {
     //NODE struct contain machine side functions and config
     //NODE also contain Network related info 
     //As a PEERS Vector (which first item will be the node itself)
-    let mut my_node: Node = Node{known_peers: Vec::from([my_self])};
+    let my_node: Node = Node{known_peers: Vec::from([my_self])};
     
-
     //Prepare variable to be shared between threads
     let shared_node = Arc::new(Mutex::new(my_node));
     //NODE instance used in local CLI
@@ -445,24 +464,33 @@ async fn main() {
         loop {
 
             // Check for new messages from the network thread
-            let net_msg: [String; 3] = handle_net_msg(&network_message_rx);
+            let (net_msgs, _net_peers) = handle_net_msg(&network_message_rx);
+            //let net_msg: [String; 3] = handle_net_msg(&network_message_rx);
 
-            if net_msg[0] != EMPTY_STRING {
-
-                let mut net_write_blocks = arc_web_net_write_blocks.lock().await;
-
-                if !net_write_blocks.message.contains(&net_msg){
-
-                    //Call insert function to format and store in a block section
-                    net_write_blocks.insert(net_msg.clone());
+            for net_msg in net_msgs{
+                if net_msg[0] != EMPTY_STRING {
+    
+                    let mut net_write_blocks = arc_web_net_write_blocks.lock().await;
+    
+                    if !net_write_blocks.message.contains(&net_msg){
+    
+                        //Call insert function to format and store in a block section
+                        net_write_blocks.insert(net_msg.clone());
+                    }
+    
+                    //net_msg = [EMPTY_STRING; 3];
+                }
+                else {
+                    //break;
+                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
                 }
 
-                //net_msg = [EMPTY_STRING; 3];
             }
-            else {
+            
+            //else {
                 //break;
-                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-            }
+              //  tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            //}
 
             let mut net_web_rw_info = arc_net_rw_web_info.lock().await;
 
@@ -628,7 +656,7 @@ async fn main() {
                         version: VERSION.to_string(),
                         time: to_net_node.get_time_ns(),
                         message: block_message,
-                        address: to_net_node.gen_address(),
+                        peers: to_net_node.known_peers.clone(),
                         code: "00001".to_string(),
                     };
 
