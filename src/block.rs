@@ -96,7 +96,7 @@ impl Node {
 
     pub fn insert_peer (&mut self, peer: Peers) {
         //Insert data in the Vector
-        if self.known_peers.contains(&peer){
+        if !self.known_peers.contains(&peer){
             self.known_peers.push(peer);
         }
     }      
