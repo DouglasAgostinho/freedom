@@ -115,12 +115,13 @@ fn get_input() -> String {
 #[instrument]
 fn prog_control() -> (u8, (String, String)) {
 
-    println!("\x1B[2J\x1B[1;1H");
+    //println!("\x1B[2J\x1B[1;1H");
     println!("{}", GREETINGS);
     println!("{}", MAIN_MENU);
 
     //Variable to receive user input
     let user_input = get_input();
+    println!("User Input is => {}", user_input);
 
     let u_sel: u8;
 
@@ -184,6 +185,8 @@ fn local_users(tx: Sender<(u8, (String, String))>){
 
         //let (action_menu, model_and_message) = prog_control(); 
         let ser_menu = prog_control(); 
+
+        //println!("User menu is => {}", ser_menu.0);
 
         //let mut ser_menu = serde_json::to_string(&model_and_message).expect("error");
 
@@ -400,6 +403,9 @@ async fn main() {
     let arc_to_net_node = Arc::clone(&shared_node);
     //NODE instance to receive new peers from network
     let arc_web_net_node = Arc::clone(&shared_node);
+    //NODE instance to perform automatic model addressing
+    let arc_auto_model_node = Arc::clone(&shared_node);
+
 
     //Shared variable to store the MODEL MESSAGE (reply) and send to web server
     let shared_model_msg = Arc::new(Mutex::new(String::new()));
@@ -442,6 +448,8 @@ async fn main() {
     let arc_local_write_blocks = Arc::clone(&shared_blocks);
     //Read blocks messages on the main thread
     let arc_main_read_blocks = Arc::clone(&shared_blocks);
+    //Read and Write blocks messages in the auto model message addressing section
+    let arc_auto_model_wr_blocks = Arc::clone(&shared_blocks);
 
 
     //Initiate time measurement - for time triggered features
@@ -534,6 +542,7 @@ async fn main() {
             // Check for new messages from the input thread
 
             let (selection, (model, msg)) = handle_thread_msg(&local_message_rx);
+            //println!("Menu local => {}", selection);
 
             if selection != 0 {
 
@@ -558,7 +567,7 @@ async fn main() {
                     },
 
                     2 => { //"2" => {
-                        println!("\x1B[2J\x1B[1;1H");
+                        //println!("\x1B[2J\x1B[1;1H");
                         
                         let cli_write_model_message = arc_cli_write_model_tuple.lock().await;
                         println!("-----------------------------");
@@ -571,7 +580,7 @@ async fn main() {
 
                     3 => { //"3" => {
 
-                        println!("\x1B[2J\x1B[1;1H");
+                        //println!("\x1B[2J\x1B[1;1H");
 
                         let cli_node = arc_cli_node.lock().await;
                         
@@ -587,9 +596,9 @@ async fn main() {
 
                     4 => { //"4" => {
 
-                        println!("\x1B[2J\x1B[1;1H");
+                        //println!("\x1B[2J\x1B[1;1H");
 
-                        println!("Debug");
+                        //println!("Debug");
                         let owned_model = "Phi 3".to_string();
                         let local_write_blocks = {
                             let blocks = arc_local_write_blocks.lock().await;
@@ -693,10 +702,73 @@ async fn main() {
             Err(e) => {
                 error!("Error while removing message from list => {}", e)
             }
-        } 
-        thread::sleep(Duration::from_millis(1));
+        }
 
+        thread::sleep(Duration::from_millis(1));
     }});
+
+
+    let auto_model = tokio::spawn(async move{
+        loop{
+
+            
+            tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+            //println!("turnnnnnnnnnnnn");
+            let (dest_ip, model) = {
+
+                let mut r_ip = EMPTY_STRING;
+                let mut r_model = EMPTY_STRING;
+
+                println!("Debug 1");
+                let auto_model_node = arc_auto_model_node.lock().await;
+
+                let mut auto_model_wr_blocks = arc_auto_model_wr_blocks.lock().await;
+                println!("Debug 2");
+                for peer in auto_model_node.known_peers.clone(){
+                    println!("Debug 3");
+                    let mut i = 0;
+
+                    for message in auto_model_wr_blocks.message.clone(){
+                        println!("Debug 4");
+                        for model in peer.models.clone(){
+                            println!("Debug 5");
+                            let dest_ip = peer.address.clone();
+                            println!("Models => {} , {}", message[2], model);
+                            println!("Debug 6");
+                            if model == message[2]{
+                                println!("Debug 7");
+                                if model != EMPTY_STRING{
+                                    //tokio::task::spawn_blocking(move || {net::network::request_model_msg(dest_ip, model)});
+                                    //let eee = tokio::spawn(async move {net::network::request_model_msg(dest_ip, model)});
+                                    //println!("Debugssss ip => {}, model=> {}", dest_ip, model);
+                                    println!("iiiiiiiiiiiiiiii{}", i);
+                                    //println!("Model => {}", message[2]);
+                                    auto_model_wr_blocks.message.swap_remove(i);                               
+                                    println!("Debug 8");
+                                    //println!("Debugssss ip => {}, model=> {}", dest_ip, model);
+                                    r_ip = dest_ip;
+                                    r_model = model;
+                                    
+                                }                                                     
+                            }
+                        }
+                        i += 1;                    
+                    }                
+                }
+
+                (r_ip, r_model)
+
+            };
+
+            if model != EMPTY_STRING{
+                //let _ = tokio::task::spawn_blocking(move || {net::network::request_model_msg(dest_ip, model)}).await;
+                println!("Debugssss ip => {}, model=> {}", dest_ip, model);
+            }
+            
+            //let _ = tokio::join!();
+        
+        }
+    });
 
 
     let web_comm = AppState{
@@ -714,7 +786,8 @@ async fn main() {
         net_web_join_handle,
         local_menu_join_handle,
         main_loop_join_handle,
-        web_server_join_handle
+        web_server_join_handle,
+        auto_model
         );
 }
 
