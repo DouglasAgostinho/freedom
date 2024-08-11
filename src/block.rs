@@ -30,7 +30,7 @@ impl NetWorkMessage {
     
 }
 
-#[derive(Debug)] //Clone
+#[derive(Debug, Clone)]
 pub struct Block {        
     pub message:    Vec<[String; 3]>,
     pub msg_done:    Vec<[String; 3]>,

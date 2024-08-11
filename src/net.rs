@@ -415,7 +415,7 @@ pub mod network{
     /// secure assynchronous key exchange and message encryption
     #[instrument]
     pub fn request_model_msg(dest_ip: String, model: String) -> io::Result<String> {
-        println!("Debug");
+        //println!("Debug");
         //Generate own Ephemeral Keys
         let (pv_key, pb_key) = generate_own_keys();
 

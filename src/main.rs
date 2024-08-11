@@ -297,9 +297,12 @@ fn le_model (model_rx: &Receiver<String>) -> String{
 #[instrument] //Tracing auto span generation
 fn handle_model_available(
     model_receiver: &Receiver<(TcpStream, String)>, 
-    mut messages: Vec<[String; 2]>,
+    //mut messages: Vec<[String; 2]>,
+    messages: Block,
     tx_model: Sender<String>
     ) -> io::Result<usize>{
+
+    //let mut pos: usize = 0;
 
     match model_receiver.try_recv() {
 
@@ -309,10 +312,14 @@ fn handle_model_available(
 
             let (rcv_key, model) = msg;
 
-            for (i, message) in messages.iter().enumerate() {
+            for (i, message) in messages.message.iter().enumerate() {
 
                 if message[0] == model {
-                    let msg = messages.swap_remove(i);
+                    
+                    let msg = messages.message[i].clone();
+                    
+                    //pos = i;
+
                     thread::spawn( move ||
                     match net::network::send_model_msg(rcv_key, msg[1].to_string(), stream, tx_model) {
                         Ok(n) => {n},
@@ -324,10 +331,10 @@ fn handle_model_available(
                     return Ok(i);
                 }
             }
-            Ok(0)
+            Ok(99999)
         },
         Err(mpsc::TryRecvError::Empty) => {
-            Ok(0)
+            Ok(99999)
         }
         Err(mpsc::TryRecvError::Disconnected) => {
 
@@ -372,7 +379,11 @@ async fn main() {
     
     
     //Vector containing the selected MODEL and USER MESSAGE to be sent to model.
-    let model_tuple: Vec<[String; 2]> = Vec::from([[EMPTY_STRING; 2]]); 
+    //let model_tuple: Vec<[String; 2]> = Vec::from([[EMPTY_STRING; 2]]); 
+    let model_tuple = Block{
+        message: Vec::from([[EMPTY_STRING; 3]]),
+        msg_done: Vec::from([[EMPTY_STRING; 3]])
+    };
 
     //Prepare variable to be shared between threads
     let shared_model_tuple = Arc::new(Mutex::new(model_tuple));
@@ -522,7 +533,8 @@ async fn main() {
 
                     let mut web_write_model_message =  arc_web_write_model_tuple.lock().await;
 
-                    web_write_model_message.push([net_web_rw_info[1].model.clone(), net_web_rw_info[1].message.clone()]);
+                    //web_write_model_message.push([net_web_rw_info[1].model.clone(), net_web_rw_info[1].message.clone()]);
+                    web_write_model_message.update([net_web_rw_info[1].model.clone(), net_web_rw_info[1].message.clone(), EMPTY_STRING]);
 
                     net_web_rw_info.swap_remove(1);
     
@@ -557,7 +569,8 @@ async fn main() {
 
                         let cli_node = arc_cli_node.lock().await;
 
-                        cli_write_model_message.push([model.clone(), msg.clone()]);
+                        //cli_write_model_message.push([model.clone(), msg.clone()]);
+                        cli_write_model_message.update([model.clone(), msg.clone(), EMPTY_STRING]);
 
                         //Organize data to fit in the message format [current time, address, message text]
                         let message: [String; 3] = [cli_node.get_time_ns(), MY_ADDRESS.to_string(), String::from(model.trim())];
@@ -691,18 +704,27 @@ async fn main() {
             Err(e) => error!("Error {}", e),
         }
 
-        let model_tuple_available = arc_model_tuple_available.lock().await;
+        let mut model_tuple_available = arc_model_tuple_available.lock().await;
  
-        match handle_model_available(&model_request_rx, model_tuple_available.clone(), model_reply_tx.clone()){
+        let pos = match handle_model_available(&model_request_rx, model_tuple_available.clone(), model_reply_tx.clone()){
             Ok(n) => {
 
-                if n != 0 {
-                    info!("Message processed")
+                if n != 99999 {
+                    info!("Message processed");
                 }
+                n
             }
             Err(e) => {
-                error!("Error while removing message from list => {}", e)
+                error!("Error while removing message from list => {}", e);
+                99999
             }
+        };
+
+        if pos != 99999{
+
+            let msg = model_tuple_available.message[pos].clone();
+            model_tuple_available.mark_message(pos);
+            model_tuple_available.update(msg);
         }
 
         thread::sleep(Duration::from_millis(1));
@@ -765,9 +787,9 @@ async fn main() {
             };
 
             if model != EMPTY_STRING{
-                println!("Debugssss ip => {}, model=> {}", dest_ip, model);
+                //println!("Debugssss ip => {}, model=> {}", dest_ip, model);
                 let _ = tokio::task::spawn_blocking(move || {net::network::request_model_msg(dest_ip, model)}).await;
-                println!("after model message sent");
+                //println!("after model message sent");
             }
             
             //let _ = tokio::join!();
