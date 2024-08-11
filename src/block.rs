@@ -30,21 +30,44 @@ impl NetWorkMessage {
     
 }
 
-//#[derive(Clone)]
+#[derive(Debug)] //Clone
 pub struct Block {        
     pub message:    Vec<[String; 3]>,
+    pub msg_done:    Vec<[String; 3]>,
 }
 impl Block {
 
     ///Insert function works to keep the blocks updated and organized
-    pub fn insert (&mut self,msg: [String; 3]) {
+    pub fn update (&mut self,msg: [String; 3]) {
 
-        //Insert data in the Vector
-        self.message.push(msg);
+        //println!(" !!!!! Msg=>{:?}", msg);
 
-        //Organize data based on creation time (index0)
-        self.message.sort_by(|a, b| a[0].cmp(&b[0]));
-    }       
+        if !self.msg_done.contains(&msg){ //Check if message was already processed
+
+            //Insert data in the Vector
+            self.message.push(msg);
+
+            //Organize data based on creation time (index0)
+            self.message.sort_by(|a, b| a[0].cmp(&b[0]));
+        }
+        else{
+            //self.message.retain(|x| x != &msg);
+            //println!("Msg=>{:?}", msg);
+            if let Some(pos) = self.message.iter().position(|x| x == &msg) {
+                self.message.swap_remove(pos);
+                //println!("Msg=>{:?}, index=>{}", msg, pos);
+            }
+        }
+    }   
+
+    pub fn mark_message(&mut self, i: usize){
+
+        if !self.msg_done.contains(&self.message[i]){
+
+            self.msg_done.push(self.message[i].clone());
+        }
+        
+    }   
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]

@@ -437,7 +437,8 @@ async fn main() {
     //Nodes will be able to verify if they have the desired model
     //Once a match occurs, the node will start the request message function
     let blocks: Block = Block{
-        message: Vec::from([[EMPTY_STRING; 3]])
+        message: Vec::from([[EMPTY_STRING; 3]]),
+        msg_done: Vec::from([[EMPTY_STRING; 3]])
     };
 
     //Prepare variable to be shared between threads
@@ -481,11 +482,11 @@ async fn main() {
     
                     let mut net_write_blocks = arc_web_net_write_blocks.lock().await;
     
-                    if !net_write_blocks.message.contains(&net_msg){
+                    //if !net_write_blocks.message.contains(&net_msg){
     
                         //Call insert function to format and store in a block section
-                        net_write_blocks.insert(net_msg.clone());
-                    }
+                        net_write_blocks.update(net_msg.clone());
+                    //}
                 }
                 //else {
                     //tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
@@ -517,7 +518,7 @@ async fn main() {
     
                     let message: [String; 3] = [net_node.get_time_ns(), MY_ADDRESS.to_string(), net_web_rw_info[1].model.clone()];
 
-                    web_write_blocks.insert(message.clone());
+                    web_write_blocks.update(message.clone());
 
                     let mut web_write_model_message =  arc_web_write_model_tuple.lock().await;
 
@@ -562,7 +563,7 @@ async fn main() {
                         let message: [String; 3] = [cli_node.get_time_ns(), MY_ADDRESS.to_string(), String::from(model.trim())];
 
                         //Call insert function to format and store in a block section
-                        local_write_blocks.insert(message.clone());
+                        local_write_blocks.update(message.clone());
 
                     },
 
@@ -588,7 +589,7 @@ async fn main() {
                         println!("-----------------------------");
                         println!("  !!!  Updated blocks  !!!");
                         println!("-----------------------------");
-                        println!(" Blocks => {:?}", local_write_blocks.message);
+                        println!(" Blocks => {:?}", local_write_blocks);
                         println!(" Peers => {:?}", cli_node.known_peers);
 
                         println!("{}", MAIN_MENU);
@@ -712,39 +713,42 @@ async fn main() {
         loop{
 
             
-            tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
             //println!("turnnnnnnnnnnnn");
             let (dest_ip, model) = {
 
                 let mut r_ip = EMPTY_STRING;
                 let mut r_model = EMPTY_STRING;
 
-                println!("Debug 1");
+                //println!("Debug 1");
                 let auto_model_node = arc_auto_model_node.lock().await;
 
                 let mut auto_model_wr_blocks = arc_auto_model_wr_blocks.lock().await;
-                println!("Debug 2");
+
+                println!(" Blocks => {:?}", auto_model_wr_blocks);
+
+                //println!("Debug 2");
                 for peer in auto_model_node.known_peers.clone(){
-                    println!("Debug 3");
+                    //println!("Debug 3");
                     let mut i = 0;
 
                     for message in auto_model_wr_blocks.message.clone(){
-                        println!("Debug 4");
+                        //println!("Debug 4");
                         for model in peer.models.clone(){
-                            println!("Debug 5");
+                            //println!("Debug 5");
                             let dest_ip = peer.address.clone();
-                            println!("Models => {} , {}", message[2], model);
-                            println!("Debug 6");
+                            //println!("Models => {} , {}", message[2], model);
+                            //println!("Debug 6");
                             if model == message[2]{
-                                println!("Debug 7");
+                                //println!("Debug 7");
                                 if model != EMPTY_STRING{
                                     //tokio::task::spawn_blocking(move || {net::network::request_model_msg(dest_ip, model)});
                                     //let eee = tokio::spawn(async move {net::network::request_model_msg(dest_ip, model)});
                                     //println!("Debugssss ip => {}, model=> {}", dest_ip, model);
-                                    println!("iiiiiiiiiiiiiiii{}", i);
+                                    //println!("iiiiiiiiiiiiiiii{}", i);
                                     //println!("Model => {}", message[2]);
-                                    auto_model_wr_blocks.message.swap_remove(i);                               
-                                    println!("Debug 8");
+                                    auto_model_wr_blocks.mark_message(i);
+                                    //println!("Debug 8");
                                     //println!("Debugssss ip => {}, model=> {}", dest_ip, model);
                                     r_ip = dest_ip;
                                     r_model = model;
@@ -761,8 +765,9 @@ async fn main() {
             };
 
             if model != EMPTY_STRING{
-                //let _ = tokio::task::spawn_blocking(move || {net::network::request_model_msg(dest_ip, model)}).await;
                 println!("Debugssss ip => {}, model=> {}", dest_ip, model);
+                let _ = tokio::task::spawn_blocking(move || {net::network::request_model_msg(dest_ip, model)}).await;
+                println!("after model message sent");
             }
             
             //let _ = tokio::join!();
