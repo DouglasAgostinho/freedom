@@ -33,12 +33,6 @@ pub mod network{
 
     //Software version
     pub const VERSION: &str = "000_01";
-    //pub const VER_SIZE: usize = VERSION.len();
-
-    //Message Code
-    //pub const TAIL_CODE: &str = "00000";
-    //pub const CODE_SIZE: usize = TAIL_CODE.len();
-    
     
     #[instrument]
     fn handle_message(
@@ -48,133 +42,39 @@ pub mod network{
         income_stream: TcpStream, 
         model_tx: Sender<(TcpStream, String)>) -> bool {
 
-        //Function to treat incoming / outgoing messages
-        //let msg_len = message.len();
-
-        //let ser_msg = &message[ .. msg_len - CODE_SIZE - VER_SIZE];
-
         let message: NetWorkMessage = serde_json::from_str(message).unwrap();
+        
+        match &message.code[..] {
 
-        let msg = "abc";
+            "####1" => {
+                let snd_model_msg = message.message;
+                
+                if snd_model_msg != EMPTY_STRING {
 
-        //match mode {
+                    //Send net message to main thread
+                    if model_tx.send((income_stream, snd_model_msg)).is_err() {
+                        error!("Failed to send message to main thread.");
+                    }
+                    else {
+                        info!("Model Message sent OK")
+                    }
+                }
+                else {
+                    error!("Empty message from model request");    
+                    ()
+                }
+            },
 
-            //"send" => {false},
+            "00001" => { //Block received
+                //Send net message to main thread
+                if tx.send(message).is_err() {
+                error!("Failed to send message to main thread.");
+                }
+            }
 
-            //"receive" => {
-                //let msg = message.trim();
-
-                //match msg {
-
-                    //"[!]_stream_[!]" => true,
-
-                    //_ => {
-                        //info!("Received: {}", message);
-
-                        //let msg_code = &message[msg_len - CODE_SIZE - VER_SIZE .. msg_len - VER_SIZE];
-                        let msg_code = &message.code[..];
-                        
-
-                        match msg_code {
-
-                            "####1" => {
-                                
-                                //let snd_model_msg = ser_msg.to_string();
-                                let snd_model_msg = message.message;
-
-                                println!("{}", snd_model_msg);
-                                
-                                if snd_model_msg != EMPTY_STRING {
-
-                                    //Send net message to main thread
-                                    if model_tx.send((income_stream, snd_model_msg)).is_err() {
-                                        error!("Failed to send message to main thread.");
-                                    }
-                                    else {
-                                        info!("Model Message sent OK")
-                                    }
-                                }
-                                else {
-                                    error!("Empty message from model request");
-                                    
-                                    ()
-                                }
-                            },
-
-                            "####2" => {
-
-                            }
-
-                            "00000" => println!("Message -> {}", msg),
-
-                            "00001" => { //Block received
-                                
-                                /* 
-                                let mut net_message :Vec<[String; 3]> = match serde_json::from_str(&message.message){
-
-                                    Ok(msg) => msg,
-                                    Err(e) => {
-                                        error!("Error while deserializing Net Message => {}", e);
-                                        Vec::from([[EMPTY_STRING; 3]])
-                                    }
-                                };
-
-                                let mut peers = message.peers.clone();
-
-                                loop{
-
-                                    let mut user_msg: [String; 3] = [EMPTY_STRING; 3];
-
-                                    if let Some(_) =  net_message.get(1){
-
-                                        user_msg = net_message.swap_remove(1);
-
-                                    }
-                                    //else{
-                                      //  user_msg = 
-                                    //}
-
-                                    let mut peer= Peers::new();   
-
-                                    if let Some(_) =  peers.get(1){
-
-                                        peer = peers.swap_remove(1);
-
-                                    }
-                                    
-                                    if (user_msg[0] != EMPTY_STRING) || (peer.address != EMPTY_STRING) {
-
-                                        //Send net message to main thread
-                                        if tx.send(user_msg).is_err() {
-                                            error!("Failed to send message to main thread.");
-                                        }
-                                    }
-                                    else {
-                                        break;
-                                    }
-                                }   */
-
-                               //Send net message to main thread
-                               if tx.send(message).is_err() {
-                                error!("Failed to send message to main thread.");
-                            }
-                                
-                            }
-
-                            _ => (),
-                        }
-                        false //to_do Will return decrypted message
-                    //},
-                //}
-            //},
-
-            //"test" => {
-                //println!("Received: {}", message);
-              //  false
-            //},
-
-            //_ => false,
-        //}
+            _ => (),
+        }
+        false //to_do Will return decrypted message
     }
 
     #[instrument]
@@ -220,47 +120,8 @@ pub mod network{
                 }
             };
 
-            if handle_message(&received.to_string(), "receive", snd, income_stream, model_snd) {
-/* 
-                //Repply to client that server is ready to receive stream
-                match stream.write_all("ready_to_receive".as_bytes()){
-                    Ok(s) => s,
-                    Err(e) => {
-                        error!("Error while trying to send network message => {}", e);
-                        return
-                    }
-                }
+            if handle_message(&received.to_string(), "receive", snd, income_stream, model_snd) {}
 
-                //Create buffer to receive data
-                let mut buffer = NET_BUFFER;
-
-                // Receive data continuously from the server
-                loop {
-                    match stream.read(&mut buffer) {
-                        Ok(0) => {
-                            info!("Connection closed by server");
-                            break;
-                        },
-                        Ok(n) => {
-                            let msg = String::from_utf8_lossy(&buffer[0..n]);
-                            print!("{}", msg);      //Uses print! to not insert /n after each received data
-
-                            // Ensure immediate output
-                            match io::stdout().flush(){
-                                Ok(n) => n,
-                                Err(e) => {
-                                    error!("Error while flushing Std output => {}", e);
-                                    break
-                                }
-                            }  
-                        },
-                        Err(e) => {
-                            error!("Failed to receive message: {}", e);
-                            break;
-                        }
-                    }
-                }*/
-            }
             else {
                 info!("Connection closed by server");
                 break;
@@ -415,7 +276,7 @@ pub mod network{
     /// secure assynchronous key exchange and message encryption
     #[instrument]
     pub fn request_model_msg(dest_ip: String, model: String) -> io::Result<String> {
-        //println!("Debug");
+        
         //Generate own Ephemeral Keys
         let (pv_key, pb_key) = generate_own_keys();
 
@@ -425,11 +286,6 @@ pub mod network{
         let to_snd_msg = (s_pb_key, model);
 
         let ser_snd_msg = serde_json::to_string(&to_snd_msg)?;
-
-        //ser_snd_msg.push_str("####1");    //####1 - code for encryption handshake
-        //ser_snd_msg.push_str(VERSION);    //Insert software version in message tail
-
-        //let dummy_peer = Peers::new();
 
         let net_msg = NetWorkMessage{
             version: VERSION.to_string(),
