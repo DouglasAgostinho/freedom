@@ -57,18 +57,18 @@ pub mod network{
 
         let msg = "abc";
 
-        match mode {
+        //match mode {
 
-            "send" => {false},
+            //"send" => {false},
 
-            "receive" => {
+            //"receive" => {
                 //let msg = message.trim();
 
-                match msg {
+                //match msg {
 
-                    "[!]_stream_[!]" => true,
+                    //"[!]_stream_[!]" => true,
 
-                    _ => {
+                    //_ => {
                         //info!("Received: {}", message);
 
                         //let msg_code = &message[msg_len - CODE_SIZE - VER_SIZE .. msg_len - VER_SIZE];
@@ -164,17 +164,17 @@ pub mod network{
                             _ => (),
                         }
                         false //to_do Will return decrypted message
-                    },
-                }
-            },
+                    //},
+                //}
+            //},
 
-            "test" => {
+            //"test" => {
                 //println!("Received: {}", message);
-                false
-            },
+              //  false
+            //},
 
-            _ => false,
-        }
+            //_ => false,
+        //}
     }
 
     #[instrument]
