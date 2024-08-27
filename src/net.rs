@@ -72,6 +72,10 @@ pub mod network{
                 }
             }
 
+            "###10" => {
+
+            }
+
             _ => (),
         }
         false //to_do Will return decrypted message
@@ -301,6 +305,8 @@ pub mod network{
         
         //let client_stream = client_write(client_stream, ser_snd_msg)?;
         let client_stream = client_write(client_stream, ser_snd_net_msg)?;
+
+        //--------------------------------------------------------------------------------------------------------------
         
         let (ser_crypto, client_stream) = client_read(client_stream);
 

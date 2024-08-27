@@ -89,6 +89,8 @@ impl Peers{
 pub struct Node {
     //pub address: String,
     pub known_peers: Vec<Peers>,
+    pub key_pair: Vec<[String; 3]>,  //Own Private Key, Public Key pair & dest IP
+    pub client_pb_key: Vec<[String; 2]>,  //Client public key, incoming IP
 }
 impl Node {
 

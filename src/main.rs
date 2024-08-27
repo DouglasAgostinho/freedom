@@ -402,7 +402,11 @@ async fn main() {
     //NODE struct contain machine side functions and config
     //NODE also contain Network related info 
     //As a PEERS Vector (which first item will be the node itself)
-    let my_node: Node = Node{known_peers: Vec::from([my_self])};
+    let my_node: Node = Node{
+        known_peers: Vec::from([my_self]),
+        key_pair: Vec::from([[EMPTY_STRING; 3]]),
+        client_pb_key: Vec::from([[EMPTY_STRING; 2]]),
+    };
     
     //Prepare variable to be shared between threads
     let shared_node = Arc::new(Mutex::new(my_node));
