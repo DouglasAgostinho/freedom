@@ -74,6 +74,20 @@ pub mod network{
 
             "###10" => {
 
+                let (s_pub_key, model): (String, String) = serde_json::from_str(&message.message).unwrap();
+
+                //Decoding client public key
+                let decoded_pb_key = match BASE64_STANDARD.decode(s_pub_key){
+                    Ok(d) => d,
+                    Err(e) => {
+                        error!("Error found while decoding pb Key => {}", e);
+                        Vec::new()
+                    }
+                };
+
+                // Create an `UnparsedPublicKey` from the bytes
+                let cl_pub_key = UnparsedPublicKey::new(&X25519, decoded_pb_key.clone());
+
             }
 
             _ => (),
