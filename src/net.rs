@@ -8,12 +8,13 @@ pub mod network{
 
     use std::thread;
     use base64::prelude::*;
+    use ring::digest::Digest;
     use crate::block::{NetWorkMessage, Peers};
     use std::sync::mpsc::Sender;    
     use std::io::{self, Read, Write}; 
     use std::net::{TcpListener, TcpStream};    
     use tracing::{instrument, info, error};
-    use ring::agreement::{UnparsedPublicKey, X25519};
+    use ring::agreement::{EphemeralPrivateKey, PublicKey, UnparsedPublicKey, X25519};
     use crate::crypt::crypt::{generate_own_keys, generate_shared_key, encrypt, decrypt}; 
 
     //----------Constants----------//
@@ -447,6 +448,97 @@ pub mod network{
         //println!("{}", MAIN_MENU);
 
         Ok(EMPTY_STRING)
+    }
+
+
+    //----------------------------------------------------------------------------------------------------------------------------------
+
+    #[instrument]
+    pub fn r01 (dest_ip: String, model: String) -> io::Result<(EphemeralPrivateKey, PublicKey, String)> {
+        
+        //Generate own Ephemeral Keys
+        let (pv_key, pb_key) = generate_own_keys();
+
+        //Convert Public key to string
+        let s_pb_key = BASE64_STANDARD.encode(pb_key.clone());
+
+        let to_snd_msg = (s_pb_key, model);
+
+        let ser_snd_msg = serde_json::to_string(&to_snd_msg)?;
+
+        let net_msg = NetWorkMessage{
+            version: VERSION.to_string(),
+            time: EMPTY_STRING,
+            message:ser_snd_msg,
+            peers: Vec::from([Peers::new()]),
+            code: "###10".to_string(),
+        };
+
+        let ser_snd_net_msg = serde_json::to_string(&net_msg)?;
+        
+        let client_stream = client_connect(dest_ip.clone())?;
+        
+        //let client_stream = client_write(client_stream, ser_snd_msg)?;
+        //let client_stream = client_write(client_stream, ser_snd_net_msg)?;
+        let _ = client_write(client_stream, ser_snd_net_msg)?;
+
+        Ok((pv_key, pb_key, dest_ip))
+
+    }
+
+
+    #[instrument]
+    pub fn s01 (encoded_key: String, message: String, income_stream: TcpStream) -> io::Result<(Digest, String)> {
+        //pub fn s01 (encoded_key: String, message: String, income_stream: TcpStream, tx: Sender<String>) -> io::Result<(Digest, String)> {
+
+        let dest_ip = String::from(format!("{}:6886", income_stream.peer_addr()?.ip().to_string()));
+
+        //Decoding received public key
+        let decoded_pb_key = match BASE64_STANDARD.decode(encoded_key){
+            Ok(d) => d,
+            Err(e) => {
+                error!("Error found while decoding pb Key => {}", e);
+                Vec::new()
+            }
+        };
+
+        // Create an `UnparsedPublicKey` from the bytes
+        let server_pb_key = UnparsedPublicKey::new(&X25519, decoded_pb_key.clone());
+
+        //Generate own Ephemeral Keys
+        let (pv_key, pb_key) = generate_own_keys();
+
+        //Generate shared synchronous key
+        let shared_key = generate_shared_key(pv_key, server_pb_key);
+
+        //Encrypt message
+        let crypt_msg = encrypt(shared_key, message);
+
+        //Encoding own public key
+        let encoded_my_pb = BASE64_STANDARD.encode(pb_key);
+
+        //Formating message tuple (encrypted message, client public key)
+        let crypt_tuple: (String, Vec<u8>)= (encoded_my_pb, crypt_msg);
+
+        //Serialize formated message
+        let ser_crypt_msg = serde_json::to_string(&crypt_tuple)?;
+
+        let net_msg = NetWorkMessage{
+            version: VERSION.to_string(),
+            time: EMPTY_STRING,
+            message:ser_crypt_msg,
+            peers: Vec::from([Peers::new()]),
+            code: "###11".to_string(),
+        };
+
+        let ser_snd_net_msg = serde_json::to_string(&net_msg)?;
+        
+        let client_stream = client_connect(dest_ip.clone())?;
+        
+        //let client_stream = client_write(client_stream, ser_snd_msg)?;
+        let _ = client_write(client_stream, ser_snd_net_msg)?;
+
+        Ok((shared_key, dest_ip))
     }
 
 }
