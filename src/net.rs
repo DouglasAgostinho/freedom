@@ -541,4 +541,40 @@ pub mod network{
         Ok((shared_key, dest_ip))
     }
 
+    pub fn r02 (ser_crypto: String, pv_key: EphemeralPrivateKey)  -> io::Result<(Digest, String)> {
+
+        //Received message will come as a serialized tuple (encrypted message, client public key)
+        let received_crypto :(String, Vec<u8>) = serde_json::from_str(&ser_crypto)?;
+
+        //Decoding client public key
+        let decoded_pb_key = match BASE64_STANDARD.decode(received_crypto.0){
+            Ok(d) => d,
+            Err(e) => {
+                error!("Error found while decoding pb Key => {}", e);
+                Vec::new()
+            }
+        };
+
+        // Create an `UnparsedPublicKey` from the bytes
+        let cl_pub_key = UnparsedPublicKey::new(&X25519, decoded_pb_key.clone());
+
+        //Generate shared synchronous key
+        let shared_key = generate_shared_key(pv_key, cl_pub_key);
+
+        //Decrypt received message
+        let msg = decrypt(shared_key, received_crypto.1);
+
+        let model_address = "192.168.191.1:8687".to_string();
+
+        // Connect to the model
+        let model_stream = client_connect(model_address)?;
+
+        // Send data to the server
+        //let model_stream = client_write(model_stream, msg)?;
+        let _ = client_write(model_stream, msg)?;
+
+        Ok((shared_key, EMPTY_STRING))
+
+    }
+
 }
